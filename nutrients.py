@@ -267,11 +267,6 @@ df = pd.DataFrame(products_data)
 def clear_nutrients_multiselect_tab3():
     st.session_state.nutrients_multiselect_tab3 = []
 
-# დამხმარე ფუნქცია ღილაკებისთვის (ძებნის პარამეტრების განახლება)
-def set_search_and_min_amount(search_term_val, min_amount_val=0.0):
-    st.session_state.search_term = search_term_val
-    st.session_state.min_amount = min_amount_val
-
 # --- დამხმარე ფუნქციები ---
 def find_nutrient_column(search_term):
     """
@@ -635,25 +630,67 @@ def main():
     col1, col2, col3, col4, col5 = st.columns([3, 3, 3, 3, 1]) # დამატებულია სვეტი გასუფთავებისთვის
 
     with col1:
-        st.button("🔶 **რკინა:** 18 მგ (ქალები), 8 მგ (მამაკაცები)", key="dose_iron", use_container_width=True, on_click=set_search_and_min_amount, args=('რკინა', 0.0))
-        st.button("🔷 **B12:** 2.4 მკგ", key="dose_b12", use_container_width=True, on_click=set_search_and_min_amount, args=('B12', 0.0))
-        st.button("🟢 **ფოლატი:** 400 მკგ", key="dose_folate", use_container_width=True, on_click=set_search_and_min_amount, args=('ფოლატი', 0.0))
+        if st.button("🔶 **რკინა:** 18 მგ (ქალები), 8 მგ (მამაკაცები)", key="dose_iron", use_container_width=True):
+            st.session_state.search_term = 'რკინა'
+            st.session_state.min_amount = 0.0
+            st.rerun()
+        if st.button("🔷 **B12:** 2.4 მკგ", key="dose_b12", use_container_width=True):
+            st.session_state.search_term = 'B12'
+            st.session_state.min_amount = 0.0
+            st.rerun()
+        if st.button("🟢 **ფოლატი:** 400 მკგ", key="dose_folate", use_container_width=True):
+            st.session_state.search_term = 'ფოლატი'
+            st.session_state.min_amount = 0.0
+            st.rerun()
     with col2:
-        st.button("🟡 **C ვიტამინი:** 90 მგ (მამაკაცები), 75 მგ (ქალები)", key="dose_c", use_container_width=True, on_click=set_search_and_min_amount, args=('C ვიტამინი', 0.0))
-        st.button("🟠 **D ვიტამინი:** 600-800 IU", key="dose_d", use_container_width=True, on_click=set_search_and_min_amount, args=('D ვიტამინი', 0.0))
-        st.button("⚪ **კალციუმი:** 1000-1200 მგ", key="dose_calcium", use_container_width=True, on_click=set_search_and_min_amount, args=('კალციუმი', 0.0))
+        if st.button("🟡 **C ვიტამინი:** 90 მგ (მამაკაცები), 75 მგ (ქალები)", key="dose_c", use_container_width=True):
+            st.session_state.search_term = 'C ვიტამინი'
+            st.session_state.min_amount = 0.0
+            st.rerun()
+        if st.button("🟠 **D ვიტამინი:** 600-800 IU", key="dose_d", use_container_width=True):
+            st.session_state.search_term = 'D ვიტამინი'
+            st.session_state.min_amount = 0.0
+            st.rerun()
+        if st.button("⚪ **კალციუმი:** 1000-1200 მგ", key="dose_calcium", use_container_width=True):
+            st.session_state.search_term = 'კალციუმი'
+            st.session_state.min_amount = 0.0
+            st.rerun()
     with col3:
-        st.button("🟣 **მაგნიუმი:** 400-420 მგ (მამაკაცები), 310-320 მგ (ქალები)", key="dose_magnesium", use_container_width=True, on_click=set_search_and_min_amount, args=('მაგნიუმი', 0.0))
-        st.button("🔵 **კალიუმი:** 3500-4700 მგ", key="dose_potassium", use_container_width=True, on_click=set_search_and_min_amount, args=('კალიუმი', 0.0))
-        st.button("⚫ **თუთია:** 11 მგ (მამაკაცები), 8 მგ (ქალები)", key="dose_zinc", use_container_width=True, on_click=set_search_and_min_amount, args=('თუთია', 0.0))
+        if st.button("🟣 **მაგნიუმი:** 400-420 მგ (მამაკაცები), 310-320 მგ (ქალები)", key="dose_magnesium", use_container_width=True):
+            st.session_state.search_term = 'მაგნიუმი'
+            st.session_state.min_amount = 0.0
+            st.rerun()
+        if st.button("🔵 **კალიუმი:** 3500-4700 მგ", key="dose_potassium", use_container_width=True):
+            st.session_state.search_term = 'კალიუმი'
+            st.session_state.min_amount = 0.0
+            st.rerun()
+        if st.button("⚫ **თუთია:** 11 მგ (მამაკაცები), 8 მგ (ქალები)", key="dose_zinc", use_container_width=True):
+            st.session_state.search_term = 'თუთია'
+            st.session_state.min_amount = 0.0
+            st.rerun()
     with col4:
-        st.button("⚪ **A ვიტამინი:** 700-900 მკგ RAE", key="dose_a", use_container_width=True, on_click=set_search_and_min_amount, args=('A ვიტამინი', 0.0))
-        st.button("🟤 **E ვიტამინი:** 15 მგ", key="dose_e", use_container_width=True, on_click=set_search_and_min_amount, args=('E ვიტამინი', 0.0))
-        st.button("⚫ **K ვიტამინი:** 90-120 მკგ", key="dose_k", use_container_width=True, on_click=set_search_and_min_amount, args=('K ვიტამინი', 0.0))
-        st.button("⚪ **სელენი:** 55 მკგ", key="dose_selenium", use_container_width=True, on_click=set_search_and_min_amount, args=('სელენი', 0.0))
+        if st.button("⚪ **A ვიტამინი:** 700-900 მკგ RAE", key="dose_a", use_container_width=True):
+            st.session_state.search_term = 'A ვიტამინი'
+            st.session_state.min_amount = 0.0
+            st.rerun()
+        if st.button("🟤 **E ვიტამინი:** 15 მგ", key="dose_e", use_container_width=True):
+            st.session_state.search_term = 'E ვიტამინი'
+            st.session_state.min_amount = 0.0
+            st.rerun()
+        if st.button("⚫ **K ვიტამინი:** 90-120 მკგ", key="dose_k", use_container_width=True):
+            st.session_state.search_term = 'K ვიტამინი'
+            st.session_state.min_amount = 0.0
+            st.rerun()
+        if st.button("⚪ **სელენი:** 55 მკგ", key="dose_selenium", use_container_width=True):
+            st.session_state.search_term = 'სელენი'
+            st.session_state.min_amount = 0.0
+            st.rerun()
     with col5:
         # გასუფთავების ღილაკი
-        st.button("🗑️ გასუფთავება", key="clear_all_search", use_container_width=True, on_click=set_search_and_min_amount, args=('', 0.0))
+        if st.button("🗑️ გასუფთავება", key="clear_all_search", use_container_width=True):
+            st.session_state.search_term = ''
+            st.session_state.min_amount = 0.0
+            st.rerun()
             
     st.markdown("---")
     
@@ -669,18 +706,13 @@ def main():
             categories = ['ყველა'] + sorted(df['კატეგორია'].unique().tolist())
             selected_category = st.selectbox("კატეგორია:", categories)
             
-            # ძიების ტექსტური ველი
-            st.session_state.search_term = st.text_input("მოძებნეთ ნუტრიენტი (მაგ. რკინა, ვიტამინი C):", 
-                                                          value=st.session_state.search_term, 
-                                                          key="main_search_input_text_field") # უნიკალური key
-            
             # მინიმალური რაოდენობის ფილტრი
+            # ეს ინფუთი მხოლოდ მაშინ გამოჩნდება, თუ რამეა საძიებო ველში
             if st.session_state.search_term:
                 st.session_state.min_amount = st.number_input(f"მინიმალური რაოდენობა ({st.session_state.search_term}):", 
                                                               min_value=0.0, 
-                                                              value=st.session_state.min_amount, # იყენებს session_state-ის მნიშვნელობას
-                                                              step=0.1,
-                                                              key="min_amount_input_field") # უნიკალური key
+                                                              value=st.session_state.get('min_amount', 0.0), 
+                                                              step=0.1)
         
         # მთავარი კონტენტი (ძიების ტაბი)
         filtered_df = df.copy()
@@ -792,7 +824,7 @@ def main():
                     'პროდუქტი': product_to_add,
                     'რაოდენობა': amount
                 })
-                # st.rerun() # აღარ არის საჭირო, Streamlit ავტომატურად განაახლებს
+                st.rerun()
         
         # არჩეული პროდუქტების ჩვენება
         if st.session_state.selected_products:
@@ -813,17 +845,17 @@ def main():
                                                  key=f"edit_amount_{i}")
                     if new_amount != item['რაოდენობა']:
                         st.session_state.selected_products[i]['რაოდენობა'] = new_amount
-                        # st.rerun() # აღარ არის საჭირო, Streamlit ავტომატურად განაახლებს
+                        st.rerun()
                 
                 with col3_item:
                     if st.button("🗑️", key=f"remove_{i}"):
                         st.session_state.selected_products.pop(i)
-                        # st.rerun() # აღარ არის საჭირო, Streamlit ავტომატურად განაახლებს
+                        st.rerun()
             
             # ყველა პროდუქტის გასუფთავება
             if st.button("🗑️ ყველას გასუფთავება", key="clear_all_selected_products"):
                 st.session_state.selected_products = []
-                # st.rerun() # აღარ არის საჭირო, Streamlit ავტომატურად განაახლებს
+                st.rerun()
             
             # დღიური ნორმის გამოთვლა
             st.markdown("---")
