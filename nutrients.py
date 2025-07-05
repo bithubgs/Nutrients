@@ -599,10 +599,9 @@ def search_by_nutrient(df, search_term, min_amount=0):
     results = results.sort_values(nutrient_col, ascending=False)
     
     return results
-st.markdown( """ <style> body { font-size: 8px; } </style> """, unsafe_allow_html=True )
 # --- სტრიმლიტის აპლიკაცია ---
 def main():
-    st.set_page_config(page_title="საკვები პროდუქტების ვიტამინ-მინერალური ძიება", layout="wide")
+    st.set_page_config(page_title="საკვები პროდუქტების ვიტამინ-მინერალური ძიება", layout="wide", """ <style> body { font-size: 8px; } </style> """)
     
     # session state-ის ინიციალიზაცია
     if 'search_term' not in st.session_state:
