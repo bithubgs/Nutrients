@@ -40,12 +40,12 @@ products_data = {
         'ცხიმები და ზეთები', 'ცხიმები და ზეთები', 'ცხიმები და ზეთები',
         'ხორცი', 'ღვიძლი', 'ღვიძლი',
         'კვერცხი', 'კვერცხი',
-        'პარკოსნები', 'პარკოსნები',
-        'ბოსტნეული', 'სოკო', 'ბოსტნეული', 'ბოსტნეული', 'ბოსტნეული',
-        'ხილი', 'ხილი', 'ხილი', 'ხილი', 'ხილი',
-        'მარცვლეული', 'მარცვლეული', 'მარცვლეული',
-        'ბოსტნეული', 'ბოსტნეული', 'ბოსტნეული',
-        'რძის პროდუქტები', 'რძის პროდუქტები', 'რძის პროდუქტები', 'რძის პროდუქტები'
+        'წითელი ოსპი', 'წიწილა (Chickpeas)',
+        'ბროკოლი (მოხარშული)', 'სოკო (თეთრი)', 'პომიდორი', 'კიტრი', 'ბადრიჯანი',
+        'მაყვალი', 'ჟოლო', 'ატამი', 'ქლიავი', 'ალუბალი',
+        'ფეტვი', 'ქერი', 'ამარანტი',
+        'მდოგვის მწვანილი', 'ტურნიპის მწვანილი', 'რუკოლა',
+        'რძე (ნახევრად უცხიმო)', 'რიკოტა ყველი', 'პარმეზანი', 'თხის ყველი'
     ],
     'კალორიები_კკალ': [ # Calories per 100g
         131, 135, 165, 135, 104, 294, 137, # Meat
@@ -170,8 +170,8 @@ products_data = {
         0, 0, 0, 0, 0,
         0, 0, 0, 0, 0,
         0, 0, 0,
-        0, 0, 0,
-        100, 0, 0, 0
+        100, 0, 0, 0,
+        0, 0, 0 # Added one more zero to match length 109
     ],
     'კალციუმი_მგ': [
         12, 5, 8, 8, 10, 7, 12,
@@ -342,6 +342,14 @@ products_data = {
         2, 1, 3, 1
     ]
 }
+
+# Verify all lists in products_data have the same length before creating DataFrame
+first_key = list(products_data.keys())[0]
+expected_length = len(products_data[first_key])
+for key, value in products_data.items():
+    if len(value) != expected_length:
+        st.error(f"Error: List '{key}' has length {len(value)}, but expected {expected_length}. Please check your data for consistency.")
+        st.stop() # Stop the app execution if there's an inconsistency
 
 # DataFrame-ის შექმნა
 df = pd.DataFrame(products_data)
@@ -573,7 +581,7 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
         
         percentage_for_progress = 0
         if recommended > 0:
-            percentage_for_progress = min((current_amount / recommended), 2.0)
+            percentage_for_progress = min((current_amount / recommended), 1.0) # Cap at 100% for progress bar
         
         unit = get_unit(nutrient)
         
@@ -583,7 +591,7 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
             st.write(f"**{name}**")
         
         with col2_detail:
-            st.progress(min(percentage_for_progress, 1.0))
+            st.progress(percentage_for_progress)
         
         with col3_detail:
             st.write(f"{current_amount:.1f}/{recommended} {unit}")
@@ -700,9 +708,34 @@ def optimize_ration(selected_product_names, df, recommended_doses, nutrient_keys
         st.warning(f"PuLP Solver Status: {LpStatus[prob.status]}. ვერ მოხერხდა ოპტიმალური რაციონის გენერირება.")
         return []
 
-# --- სტრიმლიტის აპლიკაცია ---
+# --- Calorie calculation (Harris-Benedict formula) ---
+def calculate_bmr(weight, height, age, gender):
+    if gender == "მამრობითი":
+        bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
+    else: # მდედრობითი
+        bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
+    return bmr
+
+def calculate_tdee(bmr, activity_level):
+    activity_factors = {
+        "მინიმალური (მჯდომარე ცხოვრება)": 1.2,
+        "მსუბუქი (კვირაში 1-3-ჯერ ვარჯიში)": 1.375,
+        "ზომიერი (კვირაში 3-5-ჯერ ვარჯიში)": 1.55,
+        "მაღალი (კვირაში 6-7-ჯერ ვარჯიში)": 1.725,
+        "ძალიან მაღალი (ყოველდღიური, ინტენსიური ვარჯიში)": 1.9
+    }
+    return bmr * activity_factors[activity_level]
+
+# --- Streamlit აპლიკაცია ---
 def main():
-    st.set_page_config(page_title="საკვები პროდუქტების ვიტამინ-მინერალური ძიება", layout="wide")
+    st.set_page_config(
+        page_title="🍏 თქვენი პირადი ნუტრიციოლოგი",
+        layout="wide", # Changed to wide for better layout of tabs
+        initial_sidebar_state="auto",
+        menu_items={
+            'About': "ეს აპლიკაცია შექმნილია თქვენი პირადი კვებითი რეკომენდაციების მოსაწოდებლად. გთხოვთ, გაითვალისწინოთ, რომ ეს არ არის პროფესიონალური სამედიცინო რჩევა."
+        }
+    )
     
     # session state-ის ინიციალიზაცია
     if 'search_term' not in st.session_state:
@@ -716,41 +749,221 @@ def main():
     if 'generated_ration' not in st.session_state:
         st.session_state.generated_ration = []
 
-    # CSS სტაილი კომპაქტური ვიუსთვის
+    # CSS სტაილი კომპაქტური ვიუსთვის და DARK MODE-ის ადაპტაციისთვის
     st.markdown("""
     <style>
-    html, body, .stApp {
-        font-size: 14px;
+    /* General body and app styling for LIGHT MODE */
+    body {
+        font-family: 'Open Sans', sans-serif;
+        color: #333; /* Dark text for light mode */
+        line-height: 1.6;
+    }
+    .main {
+        background-color: #fefefe; /* Very light, clean background for content */
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .stApp {
+        background: linear-gradient(to right, #e0f5f7, #c1e7ed); /* Subtle gradient background */
+    }
+
+    /* Headings styling for LIGHT MODE */
+    h1 {
+        color: #1a7a4f; /* Deeper green for main title */
+        text-align: center;
+        font-family: 'Merriweather', serif;
+        font-size: 2.4em;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #66bb6a;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+    }
+    h2, h3, h4 {
+        color: #2b6b55; /* Darker, richer green for subheadings */
+        font-family: 'Merriweather', serif;
+        border-bottom: 1px solid #c8e6c9;
+        padding-bottom: 5px;
+        margin-top: 25px;
+        font-size: 1.4em;
+    }
+    h4 {
+        font-size: 1.2em;
+    }
+
+    /* Button styling for LIGHT MODE */
+    .stButton>button {
+        background-color: #66bb6a; /* Medium green button */
+        color: white;
+        border-radius: 10px;
+        border: none;
+        padding: 12px 25px;
+        font-size: 17px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: block;
+        margin: 25px auto;
+        width: 85%;
+        max-width: 350px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .stButton>button:hover {
+        background-color: #5cb85c;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    }
+
+    /* Input field styling for LIGHT MODE */
+    .stSelectbox, .stNumberInput, .stRadio {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 8px;
+        border: 1px solid #a7d9e7;
+        box-shadow: inset 0 1px 4px rgba(0,0,0,0.05);
+        margin-bottom: 12px;
+    }
+
+    /* Alert messages styling for LIGHT MODE */
+    .stAlert {
+        border-radius: 10px;
+        padding: 15px;
+        font-size: 0.98em;
         line-height: 1.5;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+    .stAlert.warning {
+        background-color: #fff8e1;
+        border-color: #ffecb3;
+        color: #e69100;
+    }
+    .stAlert.info {
+        background-color: #e0f7fa;
+        border-color: #b2ebf2;
+        color: #00796b;
     }
 
-    .stTextInput, .stSelectbox, .stNumberInput, .stButton, .stRadio, .stExpander {
-        margin-bottom: 0.5rem !important;
-        margin-top: 0.25rem !important;
+    /* Sidebar styling for LIGHT MODE */
+    .css-1d391kg { /* Streamlit sidebar background */
+        background-color: #e0f8f8;
+        border-right: 1px solid #b2e0e0;
+        box-shadow: 3px 0 8px rgba(0,0,0,0.05);
     }
 
-    .element-container {
-        margin-bottom: 0.5rem !important;
+    /* Expander styling for LIGHT MODE */
+    .st-emotion-cache-1r6dm7m { /* Expander header color */
+        color: #2b6b55;
+        font-weight: bold;
+        font-size: 1.15em;
     }
-    .stMarkdown {
-        margin-bottom: 0.5rem !important;
-        margin-top: 0.25rem !important;
+    .st-emotion-cache-eczf16 { /* Expander content background */
+        background-color: #f8fcfc;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 10px;
+        border: 1px dashed #d5f2f5;
+        box-shadow: inset 0 1px 5px rgba(0,0,0,0.02);
     }
-    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
-        font-size:16px;
-        margin-bottom: 0px;
+
+    /* Markdown list styling */
+    ul {
+        padding-left: 25px;
+        list-style-type: disc;
     }
-    
-    .nutrition-card {
-        background-color: #f8f9fa; 
-        color: #333;
-        padding: 0.5rem;
-        border-radius: 0.25rem;
-        margin-bottom: 0.5rem;
-        border-left: 3px solid #007bff;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    li {
+        margin-bottom: 8px;
     }
+
+    /* --- DARK MODE specific styles --- */
     @media (prefers-color-scheme: dark) {
+        body {
+            color: #e0e0e0; /* Light grey text for dark mode */
+        }
+        .main {
+            background-color: #2c2c2c; /* Darker background for content */
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4); /* More pronounced shadow */
+        }
+        .stApp {
+            background: linear-gradient(to right, #1a1a1a, #2a2a2a); /* Dark gradient background */
+        }
+
+        /* Headings styling for DARK MODE */
+        h1 {
+            color: #90ee90; /* Lighter green for main title in dark mode */
+            border-bottom-color: #4CAF50; /* More vibrant green line */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+        }
+        h2, h3, h4 {
+            color: #a0e6a0; /* Lighter green for subheadings */
+            border-bottom-color: #3e8e41;
+        }
+
+        /* Button styling for DARK MODE */
+        .stButton>button {
+            background-color: #4CAF50; /* Green button remains vibrant */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .stButton>button:hover {
+            background-color: #3e8e41;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+        }
+
+        /* Input field styling for DARK MODE */
+        .stSelectbox, .stNumberInput, .stRadio {
+            background-color: #3c3c3c; /* Darker background for inputs */
+            border-color: #555; /* Softer border */
+            color: #e0e0e0; /* Light text in inputs */
+        }
+        /* Ensure text in selectbox/numberinput is light */
+        .stSelectbox div[data-baseweb="select"] {
+            color: #e0e0e0 !important;
+        }
+        .stNumberInput input {
+            color: #e0e0e0 !important;
+        }
+        .stRadio label {
+            color: #e0e0e0 !important;
+        }
+
+
+        /* Alert messages styling for DARK MODE */
+        .stAlert {
+            background-color: #444; /* Darker background for alerts */
+            border-color: #666;
+            color: #e0e0e0;
+        }
+        .stAlert.warning {
+            background-color: #5c4700; /* Darker warning background */
+            border-color: #8c6e00;
+            color: #ffe082; /* Lighter warning text */
+        }
+        .stAlert.info {
+            background-color: #1a4f66; /* Darker info background */
+            border-color: #3a7a92;
+            color: #81d4fa; /* Lighter info text */
+        }
+
+
+        /* Sidebar styling for DARK MODE */
+        .css-1d391kg {
+            background-color: #222; /* Darker sidebar background */
+            border-right-color: #333;
+            box-shadow: 3px 0 8px rgba(0,0,0,0.2);
+        }
+
+        /* Expander styling for DARK MODE */
+        .st-emotion-cache-1r6dm7m { /* Expander header color */
+            color: #90ee90;
+        }
+        .st-emotion-cache-eczf16 { /* Expander content background */
+            background-color: #333; /* Darker content background */
+            border-color: #555;
+            box-shadow: inset 0 1px 5px rgba(0,0,0,0.2);
+        }
+
+        /* Specific styles for nutrition cards in dark mode */
         .nutrition-card {
             background-color: #333333;
             color: #f8f9fa;
@@ -766,63 +979,15 @@ def main():
         .stMarkdown, .stText, .stLabel {
             color: #f8f9fa;
         }
-    }
-
-    .nutrition-value {
-        font-weight: bold;
-        color: #007bff;
-    }
-    .dose-button {
-        background-color: #e6f7ff;
-        color: #007bff;
-        border: 1px solid #007bff;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        cursor: pointer;
-        font-weight: bold;
-        display: inline-block;
-        margin-right: 0.5rem;
-        margin-bottom: 0.5rem;
-    }
-    .dose-button:hover {
-        background-color: #007bff;
-        color: white;
-    }
-    .stMetric {
-        background-color: #f0f2f6;
-        border-radius: 0.5rem;
-        padding: 0.5rem;
-        margin-bottom: 0.5rem;
-        border: 1px solid #e0e2e6;
-    }
-    @media (prefers-color-scheme: dark) {
         .stMetric {
             background-color: #26272e;
             border: 1px solid #3d404d;
         }
     }
-    .stMetric label {
-        font-size: 0.9em;
-        font-weight: bold;
-    }
-    .stMetric div[data-testid="stMetricValue"] {
-        font-size: 1.1em;
-    }
-    .stMetric div[data-testid="stMetricDelta"] {
-        font-size: 0.8em;
-    }
-
-    .stExpander div[data-testid="stExpanderForm"] {
-        padding: 0.5rem;
-    }
-    .stExpander details summary {
-        padding: 0.5rem 0.75rem;
-        margin-bottom: 0.25rem;
-    }
     </style>
     """, unsafe_allow_html=True)
     
-    st.title("🥗 საკვები პროდუქტების ვიტამინ-მინერალური ძიება")
+    st.title("🥗 თქვენი პირადი ნუტრიციოლოგი")
     st.markdown("---")
     
     # დღიური დოზების ინფორმაცია მთავარ გვერდზე
@@ -855,26 +1020,300 @@ def main():
     st.markdown("---")
     
     # ტაბების შექმნა
-    tab1, tab2, tab3, tab4 = st.tabs(["🔍 ძიება", "🧮 დღიური ნორმის კალკულატორი", "📈 ნუტრიენტების მონაცემები", "✨ დღიური რაციონის შედგენა"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["👨‍⚕️ პირადი ნუტრიციოლოგი", "🔍 პროდუქტების ძიება", "🧮 დღიური ნორმის კალკულატორი", "📈 ნუტრიენტების მონაცემები", "✨ დღიური რაციონის შედგენა"])
     
     with tab1:
+        st.header("👨‍⚕️🍏 თქვენი პირადი ნუტრიციოლოგი")
+        st.write("შეიყვანეთ თქვენი მონაცემები და მიიღეთ დეტალური კვებითი რეკომენდაციები თქვენი ინდივიდუალური საჭიროებების გათვალისწინებით.")
+
+        st.markdown("---")
+        st.subheader("📝 შეიყვანეთ მონაცემები")
+
+        # --- User data input ---
+        gender_personal = st.radio("🧍 **სქესი:**", ("მამრობითი", "მდედრობითი"), key="gender_personal_tab")
+        weight = st.number_input("⚖️ **წონა (კგ):**", min_value=1.0, max_value=300.0, value=70.0, step=0.1, key="weight_personal_tab")
+        height = st.number_input("📏 **სიმაღლე (სმ):**", min_value=50.0, max_value=250.0, value=170.0, step=0.1, key="height_personal_tab")
+        age = st.number_input("🎂 **ასაკი (წელი):**", min_value=1, max_value=120, value=30, key="age_personal_tab")
+
+        activity_level = st.selectbox(
+            "🏃 **ფიზიკური აქტივობა:**",
+            (
+                "მინიმალური (მჯდომარე ცხოვრება)",
+                "მსუბუქი (კვირაში 1-3-ჯერ ვარჯიში)",
+                "ზომიერი (კვირაში 3-5-ჯერ ვარჯიში)",
+                "მაღალი (კვირაში 6-7-ჯერ ვარჯიში)",
+                "ძალიან მაღალი (ყოველდღიური, ინტენსიური ვარჯიში)"
+            ), key="activity_personal_tab"
+        )
+
+        meal_frequency = st.number_input("🍽️ **ჭამის სიხშირე (დღეში):**", min_value=2, max_value=6, value=3, key="meal_freq_personal_tab")
+
+        body_type = st.selectbox(
+            "🧍 **აღნაგობა:**",
+            ("გამხდარი", "საშუალო", "მსუქანი"), key="body_type_personal_tab"
+        )
+
+        goal = st.selectbox(
+            "🎯 **კვებითი მიზანი:**",
+            ("წონის დაკლება", "წონის შენარჩუნება", "წონის მომატება"), key="goal_personal_tab"
+        )
+
+        # --- Blood type selection with both international and Georgian designations ---
+        st.markdown("---")
+        st.subheader("🩸 სისხლის ჯგუფი")
+        blood_abo_options = [
+            "არ ვიცი",
+            "0 (I ჯგუფი)",
+            "A (II ჯგუფი)",
+            "B (III ჯგუფი)",
+            "AB (IV ჯგუფი)"
+        ]
+        blood_abo_selection = st.selectbox(
+            "**ABO სისტემა / ქართული სტანდარტი:**",
+            blood_abo_options, key="blood_abo_personal_tab"
+        )
+
+        blood_rh = st.selectbox(
+            "**Rh ფაქტორი:**",
+            ("არ ვიცი", "+ (დადებითი)", "- (უარყოფითი)"), key="blood_rh_personal_tab"
+        )
+
+        # Extracting the ABO part for internal logic if needed
+        blood_abo = blood_abo_selection.split(' ')[0] if blood_abo_selection != "არ ვიცი" else "არ ვიცი"
+        standard_blood_group = blood_abo_selection if blood_abo_selection != "არ ვიცი" else "უცნობი"
+
+        st.markdown("---")
+        calculate_button = st.button("✨ მიიღე რეკომენდაციები", key="calculate_personal_tab")
+
+        if calculate_button:
+            bmr_val = calculate_bmr(weight, height, age, gender_personal)
+            tdee_val = calculate_tdee(bmr_val, activity_level)
+
+            daily_calories = tdee_val
+            if goal == "წონის დაკლება":
+                daily_calories -= 500 # Calorie deficit
+            elif goal == "წონის მომატება":
+                daily_calories += 500 # Calorie surplus
+
+            st.subheader("📊 თქვენი პერსონალური რეკომენდაციები")
+            st.markdown("---")
+
+            with st.expander("✨ **ენერგეტიკული მოთხოვნილება**", expanded=True): # Default expanded for initial view
+                st.write(f"თქვენი საბაზისო მეტაბოლური მაჩვენებელი (BMR) არის: **{bmr_val:.2f} კალორია/დღეში**")
+                st.write(f"თქვენი დღიური ენერგეტიკული ხარჯი (TDEE) ფიზიკური აქტივობის გათვალისწინებით არის: **{tdee_val:.2f} კალორია/დღეში**")
+                st.markdown(f"თქვენი მიზანია **{goal}**, ამიტომ სავარაუდო დღიური კალორიული ნორმაა: **{daily_calories:.2f} კალორია**")
+
+            st.markdown("---")
+            with st.expander("💪 **მაკროელემენტების განაწილება და წყაროები**"):
+
+                # Macronutrient ratios based on goal and body type (can be further refined)
+                protein_ratio, carbs_ratio, fats_ratio = 0, 0, 0
+
+                if goal == "წონის დაკლება":
+                    protein_ratio = 0.35 # 35% protein
+                    carbs_ratio = 0.40  # 40% carbs
+                    fats_ratio = 0.25   # 25% fat
+                elif goal == "წონის შენარჩუნება":
+                    protein_ratio = 0.25
+                    carbs_ratio = 0.50
+                    fats_ratio = 0.25
+                else: # Weight gain
+                    protein_ratio = 0.30
+                    carbs_ratio = 0.55
+                    fats_ratio = 0.15
+
+                protein_grams = (daily_calories * protein_ratio) / 4 # 1g protein = 4 calories
+                carbs_grams = (daily_calories * carbs_ratio) / 4     # 1g carbs = 4 calories
+                fats_grams = (daily_calories * fats_ratio) / 9       # 1g fat = 9 calories
+
+                st.write(f"თქვენი დღიური კვება უნდა შედგებოდეს დაახლოებით:")
+                st.markdown(f"""
+                * **ცილა:** **{protein_grams:.2f} გრამი** ({protein_ratio*100:.0f}% კალორიებიდან)
+                    * **ძირითადი წყაროები:** 🥩 მჭლე ხორცი (ქათმის მკერდი, ინდაური, უცხიმო საქონლის ხორცი), 🐟 თევზი (ორაგული, კალმახი, თინუსი), 🥚 კვერცხი, 🥛 რძის პროდუქტები (ხაჭო, ბერძნული იოგურტი, ყველი), 🌱 პარკოსნები (ოსპი, ლობიო, მუხუდო), ტოფუ, თხილეული.
+                * **ნახშირწყლები:** **{carbs_grams:.2f} გრამი** ({carbs_ratio*100:.0f}% კალორიებიდან)
+                    * **წყაროები (კომპლექსური):** 🌾 მთელმარცვლოვანი პური, ყავისფერი ბრინჯი, ქინოა, შვრია, ტკბილი კარტოფილი, პარკოსნები.
+                    * **მარტივი (ჯანსაღი):** 🍎 ხილი (ვაშლი, ბანანი, კენკრა).
+                * **ცხიმები:** **{fats_grams:.2f} გრამი** ({fats_ratio*100:.0f}% კალორიებიდან)
+                    * **წყაროები (ჯანსაღი):** 🥑 ავოკადო, 🌰 თხილი (ნუში, კაკალი), 🥜 არაქისის კარაქი (ნატურალური), 🐟 ცხიმიანი თევზი, 🥣 ზეითუნის ზეთი, ჩიას თესლი.
+                """)
+
+            st.markdown("---")
+            with st.expander("🍽️ **კვების სიხშირე და რაციონების მაგალითები**"):
+                st.write(f"თქვენ გირჩევნიათ იკვებოთ **{meal_frequency}**-ჯერ დღეში. ეს კარგი მიდგომაა სტაბილური ენერგიის შესანარჩუნებლად.")
+
+                st.markdown("##### რეკომენდებული რაციონები:")
+                st.markdown("""
+                * **🌅 საუზმე:**
+                    * შვრიის ფაფა კენკრით და ნუშით.
+                    * ომლეტი ბოსტნეულით და მთელმარცვლოვანი პურით.
+                    * ბერძნული იოგურტი ხილით და გრანოლით.
+                * **☀️ სადილი:**
+                    * გამომცხვარი ქათმის მკერდი ყავისფერი ბრინჯით და ბროკოლით.
+                    * ორაგულის სტეიკი ტკბილი კარტოფილით და სალათით.
+                    * ოსპის წვნიანი მთელმარცვლოვანი პურით.
+                * **🌙 ვახშამი:**
+                    * შემწვარი ინდაური და ბოსტნეული (ყვავილოვანი კომბოსტო, მწვანე ლობიო).
+                    * თინუსის სალათი მწვანე ფოთლოვანი სალათით და ავოკადოთი.
+                    * ხაჭო კენკრით და თხილით.
+                * **🍎 შუალედური კვება:**
+                    * ხილი, მუჭა თხილი, იოგურტი, სტაფილოს ჩხირები ჰუმუსით.
+                """)
+
+            st.markdown("---")
+            with st.expander("🏋️‍♀️ **კვებითი რეკომენდაციები აქტივობის დონის მიხედვით**"):
+                st.write(f"თქვენი აქტივობის დონეა: **{activity_level}**.")
+
+                if "მინიმალური" in activity_level:
+                    st.markdown("""
+                    **მინიმალური აქტივობა (მჯდომარე ცხოვრება):**
+                    * **ფოკუსი:** დაბალანსებული, ადვილად მოსანელებელი საკვები, მაღალი ბოჭკოვანით. მოერიდეთ ჭარბ კალორიებს.
+                    * **რეკომენდებულია:**
+                        * **საუზმე:** შვრიის ფაფა ხილით, ან კვერცხის ცილის ომლეტი ბოსტნეულით.
+                        * **სადილი:** ბოსტნეულის სალათი ქათმის გრილზე მომზადებული მკერდით ან თევზით. მსუბუქი სუპები.
+                        * **ვახშამი:** ორთქლზე მოხარშული თევზი ან მჭლე ხორცი, ბევრი მწვანე ბოსტნეულით.
+                        * **შუალედური კვება:** ხილი, იოგურტი.
+                    * **მოერიდეთ:** ტკბილეული, ცხიმიანი საკვები, გადამუშავებული ნახშირწყლები (თეთრი პური, მაკარონი).
+                    """)
+                elif "მსუბუქი" in activity_level:
+                    st.markdown("""
+                    **მსუბუქი აქტივობა (კვირაში 1-3-ჯერ ვარჯიში):**
+                    * **ფოკუსი:** კარგი ბალანსი მაკროელემენტებს შორის. აქტიური ცხოვრებისთვის საჭირო ენერგია.
+                    * **რეკომენდებულია:**
+                        * **საუზმე:** მთელმარცვლოვანი ფაფები, კვერცხი, ბერძნული იოგურტი.
+                        * **სადილი:** მჭლე ხორცი/თევზი, ყავისფერი ბრინჯი/ქინოა, ბევრი ბოსტნეული.
+                        * **ვახშამი:** მსუბუქი ცილოვანი კვება ბოსტნეულით.
+                        * **შუალედური კვება:** თხილი, ხილი, ბოსტნეულის ჩხირები.
+                    * **ყურადღება მიაქციეთ:** ვარჯიშის წინ (1-2 სთ) მიიღეთ მცირე რაოდენობით სწრაფი ნახშირწყლები (ბანანი), ვარჯიშის შემდეგ - ცილა და კომპლექსური ნახშირწყლები.
+                    """)
+                elif "ზომიერი" in activity_level:
+                    st.markdown("""
+                    **ზომიერი აქტივობა (კვირაში 3-5-ჯერ ვარჯიში):**
+                    * **ფოკუსი:** გაზრდილი ნახშირწყლებისა და ცილის მიღება კუნთების აღდგენისა და ენერგიის შესანარჩუნებლად.
+                    * **რეკომენდებულია:**
+                        * **საუზმე:** შვრიის ფაფა პროტეინის ფხვნილით ან კვერცხით, მთელმარცვლოვანი პური.
+                        * **სადილი:** ქათამი/თევზი/საქონლის ხორცი, მეტი რაოდენობით ყავისფერი ბრინჯი/ტკბილი კარტოფილი, უამრავი ბოსტნეული.
+                        * **ვახშამი:** ცილოვანი კვება (ორაგული, ინდაური) და მწვანე ბოსტნეული.
+                        * **შუალედური კვება:** პროტეინ ბარი, ხაჭო, თხილი, ხილი.
+                    * **მნიშვნელოვანია:** ვარჯიშის შემდგომი კვება ცილებითა და კომპლექსური ნახშირწყლებით (მაგ. ქათამი და ბრინჯი) კუნთების სწრაფი აღდგენისთვის.
+                    """)
+                elif "მაღალი" in activity_level:
+                    st.markdown("""
+                    **მაღალი აქტივობა (კვირაში 6-7-ჯერ ვარჯიში):**
+                    * **ფოკუსი:** მაღალი კალორიული მიღება, ნახშირწყლები, როგორც ენერგიის ძირითადი წყარო, და მაღალი ცილის მიღება კუნთების ზრდისა და აღდგენისთვის.
+                    * **რეკომენდებულია:**
+                        * **საუზმე:** დიდი პორცია შვრია თხილით, კენკრით, პროტეინის ფხვნილით. ომლეტი ბევრი კვერცხით.
+                        * **სადილი:** ორმაგი პორცია მჭლე ხორცი/თევზი, დიდი პორცია ბრინჯი/კარტოფილი/პასტა, ბოსტნეული.
+                        * **ვახშამი:** ცილით მდიდარი და კომპლექსური ნახშირწყლების შემცველი კვება (მაგალითად, საქონლის ხორცი წიწიბურათი).
+                        * **შუალედური კვება:** ხილი, პროტეინ შეიკი, სენდვიჩები მთელმარცვლოვანი პურით.
+                    * **განსაკუთრებული ყურადღება:** ვარჯიშის წინ და შემდგომ კვებას. შესაძლოა საჭირო გახდეს სპორტული დანამატები (კრეატინი, BCAA).
+                    """)
+                elif "ძალიან მაღალი" in activity_level:
+                    st.markdown("""
+                    **ძალიან მაღალი აქტივობა (ყოველდღიური, ინტენსიური ვარჯიში):**
+                    * **ფოკუსი:** ძალიან მაღალი კალორიული მიღება, ენერგიის მუდმივი შევსება და კუნთების მაქსიმალური აღდგენა.
+                    * **რეკომენდებულია:**
+                        * **მრავალჯერადი კვება:** 5-6 დიდი კვება დღეში, მდიდარი ნახშირწყლებითა და ცილებით.
+                        * **კვების მაგალითები:** რთული ნახშირწყლები (ბრინჯი, ტკბილი კარტოფილი, პასტა), მჭლე ცილები (ქათამი, ინდაური, საქონლის ხორცი, თევზი), ჯანსაღი ცხიმები (ავოკადო, თხილი).
+                        * **მუდმივი შევსება:** ვარჯიშის დროს და მის შემდეგ ელექტროლიტებითა და სწრაფი ნახშირწყლებით მდიდარი სასმელები.
+                    * **სპეციალური მიდგომა:** შესაძლოა საჭირო გახდეს პროფესიონალი სპორტული დიეტოლოგის კონსულტაცია. დანამატების როლი (კრეატინი, პროტეინი, გეინერები) უფრო მნიშვნელოვანი ხდება.
+                    """)
+
+            st.markdown("---")
+            with st.expander("⚖️ **ერთჯერადი კვების მიახლოებითი ნორმა**"):
+                st.markdown(f"""
+                თქვენი **{daily_calories:.0f} კალორიის** გათვალისწინებით და **{meal_frequency} კვებაზე** გადანაწილებით, თითოეული კვება უნდა იყოს დაახლოებით **{daily_calories / meal_frequency:.0f} კალორია**.
+                საშუალო ერთჯერადი კვება შეიძლება შეიცავდეს:
+                * **ცილა:** **{protein_grams / meal_frequency:.0f} გრამი** (დაახლ. ხელისგულის ზომის პორცია ქათამი/თევზი, ან 2-3 კვერცხი).
+                * **ნახშირწყლები:** **{carbs_grams / meal_frequency:.0f} გრამი** (დაახლ. მუჭის ზომის პორცია ბრინჯი/ქინოა, ან 1 საშუალო კარტოფილი).
+                * **ცხიმები:** **{fats_grams / meal_frequency:.0f} გრამი** (დაახლ. ცერა თითის ზომის პორცია ავოკადო/თხილი).
+                * **ბოსტნეული:** 🥦🥕 იმდენი, რამდენიც გსურთ!
+                """)
+
+            st.markdown("---")
+            with st.expander("🌱 **მნიშვნელოვანი მინერალები და ვიტამინები: დეტალური წყაროები**"):
+                st.markdown("""
+                * **ვიტამინი C:** 🍊 ციტრუსები, 🥝 კივი, 🍓 მარწყვი, 🌶️ წიწაკა, ბროკოლი.
+                * **ვიტამინი D:** ☀️ მზის სინათლე, 🐟 ცხიმიანი თევზი, 🥚 კვერცხის გული.
+                * **რკინა:** 🥩 წითელი ხორცი, 🍗 ქათამი, 🐟 თევზი, 🌱 ოსპი, ისპანახი, გოგრის თესლი.
+                * **კალციუმი:** 🥛 რძის პროდუქტები, 🌱 ისპანახი, ბროკოლი, ტოფუ.
+                * **მაგნიუმი:** 🌰 თხილი, 🌻 თესლეული, 🌱 ისპანახი, ავოკადო, შავი შოკოლადი.
+                * **კალიუმი:** 🍌 ბანანი, 🥔 კარტოფილი, 🥑 ავოკადო, 🌱 ისპანახი, ლობიო.
+                * **ვიტამინი B12:** 🥩 ხორცი, 🐟 თევზი, 🥚 კვერცხი, 🥛 რძის პროდუქტები.
+                * **ფოლიუმის მჟავა:** 🥬 მწვანე ფოთლოვანი ბოსტნეული, პარკოსნები, ციტრუსები.
+                """)
+
+            st.markdown("---")
+            with st.expander("💧 **დამატებითი ჯანსაღი ჩვევები**"):
+                st.markdown("""
+                * **წყლის მიღება:** დალიეთ **2-2.5 ლიტრი** წყალი დღეში.
+                * **ძილი:** ეცადეთ გეძინოთ **7-9 საათი**.
+                * **სტრესის მართვა:** იპოვეთ თქვენთვის შესაფერისი გზები (იოგა, მედიტაცია, გასეირნება).
+                * **ფიზიკური აქტივობა:** რეგულარული ვარჯიში აუცილებელია.
+                * **ჯანსაღი არჩევანი:** შეზღუდეთ გადამუშავებული, შაქრიანი და ცხიმებით მდიდარი საკვები.
+                * **მრავალფეროვნება:** მიირთვით მრავალფეროვანი საკვები.
+                * **მოუსმინეთ სხეულს:** იკვებეთ შიმშილის დროს, შეწყვიტეთ დანაყრებისას.
+                """)
+
+            # --- Blood type specific advice (general) ---
+            selected_blood_type_display = standard_blood_group
+            if blood_rh != "არ ვიცი":
+                selected_blood_type_display += f" {blood_rh}"
+
+            if blood_abo != "არ ვიცი" and "არ ვიცი" not in blood_abo_selection:
+                st.markdown("---")
+                with st.expander(f"🩸 **რეკომენდაცია სისხლის ჯგუფისთვის ({selected_blood_type_display})**"):
+                    if "0" in blood_abo: # 0 (I Group)
+                        st.write("""
+                        **ჯგუფი 0 (I):** ზოგადი რეკომენდაციით, ამ ჯგუფისთვის ხშირად რეკომენდებულია **მაღალცილოვანი დიეტა** მჭლე ხორცით, ფრინველით, თევზით.
+                        * **უპირატესობა:** 🥩 წითელი ხორცი (უცხიმო), 🍗 ქათამი, 🐟 თევზი, ხილი, ბოსტნეული.
+                        * **შეზღუდეთ:** 🥛 რძის პროდუქტები, 🌾 მარცვლეული (ხორბალი), 🥔 კარტოფილი.
+                        """)
+                    elif "A" in blood_abo: # A (II Group)
+                        st.write("""
+                        **ჯგუფი A (II):** სასარგებლოა ძირითადად **მცენარეული კვება**.
+                        * **უპირატესობა:** 🍎 ხილი, 🥦 ბოსტნეული, 🌾 მთელმარცვლოვანი (შვრია, ბრინჯი), 🌱 პარკოსნები, 🐟 თევზი (ზომიერად).
+                        * **შეზღუდეთ:** 🥩 წითელი ხორცი, 🥛 რძის პროდუქტები.
+                        """)
+                    elif "B" in blood_abo: # B (III Group)
+                        st.write("""
+                        **ჯგუფი B (III):** რეკომენდებულია **დაბალანსებული და მრავალფეროვანი დიეტა**.
+                        * **უპირატესობა:** 🍗 მჭლე ხორცი, 🐟 თევზი, 🥛 რძის პროდუქტები, 🌾 მარცვლეული, 🍎 ხილი, 🥦 ბოსტნეული.
+                        * **შეზღუდეთ:** 🌽 სიმინდი, წიწიბურა, არაქისი.
+                        """)
+                    elif "AB" in blood_abo: # AB (IV Group)
+                        st.write("""
+                        **ჯგუფი AB (IV):** ეს ჯგუფი A და B ჯგუფების ნაზავია. რეკომენდებულია **ზომიერი, შერეული დიეტა**.
+                        * **უპირატესობა:** 🐟 თევზი, 🍤 ზღვის პროდუქტები, ტოფუ, 🥬 მწვანე ბოსტნეული, 🥛 რძის პროდუქტები, 🌱 პარკოსნები.
+                        * **შეზღუდეთ:** 🥩 წითელი ხორცი (მცირე რაოდენობით), 🌽 სიმინდი, წიწიბურა.
+                        """)
+                st.info("""
+                **შენიშვნა სისხლის ჯგუფზე:** სისხლის ჯგუფის მიხედვით კვების დიეტა პოპულარულია, თუმცა მისი ეფექტურობა მეცნიერულად სრულად დადასტურებული არ არის.
+                """)
+
+            st.markdown("---")
+            st.warning("""
+            **🚨 მნიშვნელოვანი გაფრთხილება:** ეს ზოგადი რეკომენდაციებია და არ წარმოადგენს პროფესიონალურ სამედიცინო ან დიეტოლოგიურ კონსულტაციას.
+            ინდივიდუალური კვების გეგმისთვის მიმართეთ ლიცენზირებულ დიეტოლოგს ან ექიმს, განსაკუთრებით თუ გაქვთ ქრონიკული დაავადებები, ალერგიები ან სპეციალური კვებითი საჭიროებები.
+            """)
+
+    with tab2:
         # მხარეს პანელი ფილტრებისთვის
         with st.sidebar:
             st.header("🔍 ძიების პარამეტრები")
             
             categories = ['ყველა'] + sorted(df['კატეგორია'].unique().tolist())
-            selected_category = st.selectbox("კატეგორია:", categories)
+            selected_category = st.selectbox("კატეგორია:", categories, key="category_filter_tab2")
             
             st.session_state.search_term = st.text_input("მოძებნეთ ნუტრიენტი (მაგ. რკინა, ვიტამინი C, კალორიები):", 
                                                          value=st.session_state.search_term, 
-                                                         key="main_search_input_text_field")
+                                                         key="main_search_input_text_field_tab2")
             
             if st.session_state.search_term:
                 st.session_state.min_amount = st.number_input(f"მინიმალური რაოდენობა ({st.session_state.search_term}):", 
                                                                min_value=0.0, 
                                                                value=st.session_state.min_amount,
                                                                step=0.1,
-                                                               key="min_amount_input_field")
+                                                               key="min_amount_input_field_tab2")
         
         # მთავარი კონტენტი (ძიების ტაბი)
         filtered_df = df.copy()
@@ -936,7 +1375,7 @@ def main():
                             <div class="nutrition-card">
                                 <h4 style="margin: 0 0 0.25rem 0; font-size: 1.1em;">{row['პროდუქტი']}</h4>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.15rem; font-size: 0.85em;"> 
-                                    <div>🔥 კალორიები: <span class="nutrition-value">{row.get('კალორიები_კკალ', 0)} კკალ</span></div>
+                                    <div>� კალორიები: <span class="nutrition-value">{row.get('კალორიები_კკალ', 0)} კკალ</span></div>
                                     <div>🔶 რკინა: <span class="nutrition-value">{row.get('რკინა_მგ', 0)} მგ</span></div>
                                     <div>🔷 B12: <span class="nutrition-value">{row.get('B12_მკგ', 0)} მკგ</span></div>
                                     <div>🟢 ფოლატი: <span class="nutrition-value">{row.get('ფოლატი_მკგ', 0)} მკგ</span></div>
@@ -955,18 +1394,18 @@ def main():
                             """
                             st.markdown(nutrition_info, unsafe_allow_html=True)
     
-    with tab2:
+    with tab3:
         st.header("🧮 დღიური ნორმის კალკულატორი")
         st.markdown("დაამატეთ პროდუქტები და მათი რაოდენობა (გრამებში), რათა გამოთვალოთ დღიური ნუტრიენტების ჯამური შემცველობა.")
         
-        gender = st.radio("აირჩიეთ სქესი:", ["მამაკაცი", "ქალი"], key="gender_tab2", horizontal=True)
+        gender_calc = st.radio("აირჩიეთ სქესი:", ["მამაკაცი", "ქალი"], key="gender_tab3", horizontal=True)
         
         product_options = df['პროდუქტი'].unique().tolist()
-        selected_product_name = st.selectbox("აირჩიეთ პროდუქტი:", product_options, key="product_selector_tab2")
+        selected_product_name = st.selectbox("აირჩიეთ პროდუქტი:", product_options, key="product_selector_tab3")
         
-        amount_g = st.number_input("რაოდენობა (გრამებში):", min_value=1.0, value=100.0, step=10.0, key="amount_input_tab2")
+        amount_g = st.number_input("რაოდენობა (გრამებში):", min_value=1.0, value=100.0, step=10.0, key="amount_input_tab3")
         
-        if st.button("➕ პროდუქტის დამატება", key="add_product_button_tab2"):
+        if st.button("➕ პროდუქტის დამატება", key="add_product_button_tab3"):
             if selected_product_name and amount_g > 0:
                 found = False
                 for i, item in enumerate(st.session_state.selected_products):
@@ -1020,14 +1459,14 @@ def main():
             
             if total_nutrition:
                 st.subheader("📊 დღიური ნუტრიენტების ანალიზი:")
-                recommended_doses = get_recommended_doses(gender)
+                recommended_doses = get_recommended_doses(gender_calc)
                 display_nutrition_analysis(total_nutrition, recommended_doses)
             else:
                 st.info("დაამატეთ პროდუქტები დღიური ნორმის სანახავად.")
         else:
             st.info("პროდუქტები არ არის დამატებული.")
     
-    with tab3:
+    with tab4:
         st.header("📈 ნუტრიენტების სრული მონაცემები")
         st.markdown("იხილეთ ყველა პროდუქტის და ნუტრიენტის დეტალური მონაცემები.")
         
@@ -1036,38 +1475,38 @@ def main():
             "აირჩიეთ ნუტრიენტები საჩვენებლად:",
             options=nutrient_columns,
             default=st.session_state.nutrients_multiselect_tab3,
-            key="nutrients_multiselect_tab3"
+            key="nutrients_multiselect_tab4" # Changed key to avoid conflict
         )
         
         categories_for_table = ['ყველა'] + sorted(df['კატეგორია'].unique().tolist())
-        selected_category_for_table = st.selectbox("ფილტრი კატეგორიის მიხედვით:", categories_for_table, key="category_filter_tab3")
+        selected_category_for_table = st.selectbox("ფილტრი კატეგორიის მიხედვით:", categories_for_table, key="category_filter_tab4") # Changed key
 
-        st.button("🗑️ არჩეული ნუტრიენტების გასუფთავება", on_click=clear_nutrients_multiselect_tab3, key="clear_multiselect_tab3")
+        st.button("🗑️ არჩეული ნუტრიენტების გასუფთავება", on_click=clear_nutrients_multiselect_tab3, key="clear_multiselect_tab4") # Changed key
 
         display_columns = ['პროდუქტი', 'კატეგორია'] + selected_nutrients_to_display
 
-        filtered_df_tab3 = df.copy()
+        filtered_df_tab4 = df.copy()
         if selected_category_for_table != 'ყველა':
-            filtered_df_tab3 = filtered_df_tab3[filtered_df_tab3['კატეგორია'] == selected_category_for_table]
+            filtered_df_tab4 = filtered_df_tab4[filtered_df_tab4['კატეგორია'] == selected_category_for_table]
 
         if not selected_nutrients_to_display:
             st.warning("გთხოვთ აირჩიოთ მინიმუმ ერთი ნუტრიენტი მონაცემების საჩვენებლად.")
         else:
-            st.dataframe(filtered_df_tab3[display_columns], use_container_width=True)
+            st.dataframe(filtered_df_tab4[display_columns], use_container_width=True)
 
-    with tab4:
+    with tab5:
         st.header("✨ დღიური რაციონის შედგენა")
         st.markdown("ამ ფუნქციის გამოყენებით შეგიძლიათ გენერირება დღიური რაციონი თქვენი სქესის მიხედვით, რომელიც დააბალანსებს აუცილებელ ნუტრიენტებს.")
         
-        ration_gender = st.radio("აირჩიეთ სქესი რაციონის გენერაციისთვის:", ["მამაკაცი", "ქალი"], key="ration_gender_selector", horizontal=True)
+        ration_gender = st.radio("აირჩიეთ სქესი რაციონის გენერაციისთვის:", ["მამაკაცი", "ქალი"], key="ration_gender_selector_tab5", horizontal=True) # Changed key
         
         st.markdown("---")
 
-        num_ration_items = st.slider("რამდენი პროდუქტი გქონდეთ რაციონში?", min_value=3, max_value=10, value=6, step=1)
+        num_ration_items = st.slider("რამდენი პროდუქტი გქონდეთ რაციონში?", min_value=3, max_value=10, value=6, step=1, key="num_ration_items_tab5") # Changed key
         
-        tolerance = st.slider("ნუტრიენტების ნორმიდან გადახრის ტოლერანტობა (%)", min_value=0, max_value=20, value=10, step=1) / 100.0
+        tolerance = st.slider("ნუტრიენტების ნორმიდან გადახრის ტოლერანტობა (%)", min_value=0, max_value=20, value=10, step=1, key="tolerance_tab5") / 100.0 # Changed key
 
-        if st.button("🛠️ რაციონის გენერაცია", key="generate_ration_button"):
+        if st.button("🛠️ რაციონის გენერაცია", key="generate_ration_button_tab5"): # Changed key
             initial_product_names = generate_random_ration(df, num_items=num_ration_items)
             
             recommended_doses_for_opt = get_recommended_doses(ration_gender)
@@ -1099,7 +1538,7 @@ def main():
                 recommended_doses_for_ration = get_recommended_doses(ration_gender)
                 display_nutrition_analysis(total_nutrition_generated, recommended_doses_for_ration)
             
-            if st.button("🗑️ გენერირებული რაციონის გასუფთავება", key="clear_generated_ration"):
+            if st.button("🗑️ გენერირებული რაციონის გასუფთავება", key="clear_generated_ration_tab5"): # Changed key
                 st.session_state.generated_ration = []
                 st.success("გენერირებული რაციონი გასუფთავებულია.")
                 st.rerun()
