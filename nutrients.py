@@ -602,6 +602,7 @@ def search_by_nutrient(df, search_term, min_amount=0):
 
 # --- სტრიმლიტის აპლიკაცია ---
 def main():
+    st.markdown( """ <style> body { font-size: 14px; } </style> """, unsafe_allow_html=True )
     st.set_page_config(page_title="საკვები პროდუქტების ვიტამინ-მინერალური ძიება", layout="wide")
     
     # session state-ის ინიციალიზაცია
