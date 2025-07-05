@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import random
 
 # საკვები პროდუქტების მონაცემები
 products_data = {
@@ -149,7 +150,6 @@ products_data = {
         27, 97, 9, 25, 17, 25,
         10, 15, 10, 12, 5,
         25, 50, 100, 15, 50,
-        50, 15, 150, 20, 10,
         262, 292, 251, 20, 40, 50, 30,
         121, 197, 25, 18,
         # დამატებული პროდუქტების მონაცემები
@@ -416,19 +416,19 @@ def calculate_daily_nutrition(selected_products, df):
         return None
     
     total_nutrition = {
-        'რკინა_მგ': 0,
-        'B12_მკგ': 0,
-        'ფოლატი_მკგ': 0,
-        'C_ვიტამინი_მგ': 0,
-        'D_ვიტამინი_IU': 0,
-        'კალციუმი_მგ': 0,
-        'მაგნიუმი_მგ': 0,
-        'კალიუმი_მგ': 0,
-        'თუთია_მგ': 0,
-        'A_ვიტამინი_მკგ_RAE': 0,
-        'E_ვიტამინი_მგ_ATE': 0,
-        'K_ვიტამინი_მკგ': 0,
-        'სელენი_მკგ': 0
+        'რკინა_მგ': 0.0,
+        'B12_მკგ': 0.0,
+        'ფოლატი_მკგ': 0.0,
+        'C_ვიტამინი_მგ': 0.0,
+        'D_ვიტამინი_IU': 0.0,
+        'კალციუმი_მგ': 0.0,
+        'მაგნიუმი_მგ': 0.0,
+        'კალიუმი_მგ': 0.0,
+        'თუთია_მგ': 0.0,
+        'A_ვიტამინი_მკგ_RAE': 0.0,
+        'E_ვიტამინი_მგ_ATE': 0.0,
+        'K_ვიტამინი_მკგ': 0.0,
+        'სელენი_მკგ': 0.0
     }
     
     for item in selected_products:
@@ -600,6 +600,57 @@ def search_by_nutrient(df, search_term, min_amount=0):
     
     return results
 
+def generate_random_meal_plan(gender, df):
+    """
+    გენერირებს პროდუქტების შემთხვევით სიას, რომელიც მიზნად ისახავს დღიური ნორმების დაკმაყოფილებას.
+    """
+    recommended_doses = get_recommended_doses(gender)
+    all_nutrients = list(recommended_doses.keys())
+    
+    # Total current intake of nutrients
+    current_intake = {nutrient: 0.0 for nutrient in all_nutrients}
+    
+    meal_plan = []
+    max_products_to_add = 10 # Limit the number of products in the plan
+    
+    for _ in range(max_products_to_add):
+        deficient_nutrients = [
+            n for n in all_nutrients 
+            if current_intake[n] < recommended_doses[n] * 0.9 # Check if below 90% of RDA
+        ]
+        
+        if not deficient_nutrients:
+            break # All major nutrients are covered
+        
+        # Prioritize a random deficient nutrient
+        target_nutrient = random.choice(deficient_nutrients)
+        
+        # Find products rich in this target nutrient
+        # Filter out products that have 0 of this nutrient to avoid infinite loops on empty products
+        candidate_products_df = df[df[target_nutrient] > 0].copy()
+        
+        if candidate_products_df.empty:
+            continue # No products for this nutrient, try next iteration
+            
+        # Select a random product from the candidates
+        selected_product_row = candidate_products_df.sample(n=1).iloc[0]
+        product_name = selected_product_row['პროდუქტი']
+        
+        # Determine a random quantity for the product (e.g., 50g to 250g)
+        quantity = random.randint(50, 250) 
+        
+        # Add to meal plan
+        meal_plan.append({'პროდუქტი': product_name, 'რაოდენობა': quantity})
+        
+        # Update current nutrient intake from this added product
+        for nutrient_key in all_nutrients:
+            # Ensure the nutrient key exists in the product_data
+            if nutrient_key in selected_product_row:
+                nutrient_amount_per_100g = selected_product_row[nutrient_key]
+                current_intake[nutrient_key] += (nutrient_amount_per_100g / 100.0) * quantity
+                
+    return meal_plan
+
 # --- სტრიმლიტის აპლიკაცია ---
 def main():
     st.set_page_config(page_title="საკვები პროდუქტების ვიტამინ-მინერალური ძიება", layout="wide")
@@ -614,12 +665,41 @@ def main():
     # Initialize session state for the multiselect in tab3
     if 'nutrients_multiselect_tab3' not in st.session_state:
         st.session_state.nutrients_multiselect_tab3 = []
-    
+    if 'random_meal_plan' not in st.session_state:
+        st.session_state.random_meal_plan = []
+    if 'random_meal_gender' not in st.session_state:
+        st.session_state.random_meal_gender = "ქალი" # Default gender for random plan
+
     # CSS სტაილი კომპაქტური ვიუსთვის
     st.markdown("""
     <style>
+    /* Define CSS variables for colors that adapt to theme */
+    :root {
+        --primary-text-color: #333;
+        --secondary-text-color: #666;
+        --card-background-color: #f8f9fa;
+        --card-border-color: #007bff;
+        --button-background-color: #e6f7ff;
+        --button-text-color: #007bff;
+        --hover-background-color: #007bff;
+        --hover-text-color: white;
+    }
+
+    /* Dark mode adjustments using the data-theme attribute */
+    [data-theme="dark"] {
+        --primary-text-color: #f0f2f6; /* Lighter text for dark mode */
+        --secondary-text-color: #bbb;
+        --card-background-color: #26272e; /* Darker background for cards */
+        --card-border-color: #66b3ff; /* Lighter blue border for contrast */
+        --button-background-color: #31333f; /* Darker button background */
+        --button-text-color: #8bb4ff; /* Lighter blue for button text */
+        --hover-background-color: #007bff;
+        --hover-text-color: white;
+    }
+
     .stApp {
         font-size: 14px;
+        color: var(--primary-text-color); /* Use variable for app text color */
     }
     .element-container {
         margin-bottom: 0.5rem !important;
@@ -628,41 +708,27 @@ def main():
         margin-bottom: 0.5rem !important;
     }
     .nutrition-card {
-        /* Default for light mode */
-        background-color: #f8f9fa; 
-        color: #333; /* Darker text for light background */
+        background-color: var(--card-background-color); /* Use variable */
         padding: 0.5rem;
         border-radius: 0.25rem;
         margin-bottom: 0.5rem;
-        border-left: 3px solid #007bff;
+        border-left: 3px solid var(--card-border-color); /* Use variable */
     }
-    /* Dark mode adjustments */
-    @media (prefers-color-scheme: dark) {
-        .nutrition-card {
-            background-color: #333333; /* Darker background for dark mode */
-            color: #f8f9fa; /* Lighter text for dark background */
-            border-left: 3px solid #66b3ff; /* A lighter blue for contrast */
-        }
-        .nutrition-card h4 {
-            color: #f8f9fa !important; /* Ensure heading is light */
-        }
-        .nutrition-value {
-            color: #99ccff !important; /* Lighter blue for values */
-        }
-        /* Adjusting Streamlit's default text color for general elements if needed */
-        .stMarkdown, .stText, .stLabel {
-            color: #f8f9fa; /* Light text for general markdown/text */
-        }
+    .nutrition-card h4 {
+        color: var(--primary-text-color) !important; /* Use variable, important to override default */
+        margin: 0 0 0.5rem 0;
     }
-
+    .nutrition-card div { /* General text inside the card grid */
+        color: var(--secondary-text-color);
+    }
     .nutrition-value {
         font-weight: bold;
-        color: #007bff; /* This will be overridden for dark mode by the @media query */
+        color: var(--button-text-color) !important; /* Use a more appropriate variable or keep original blue */
     }
     .dose-button {
-        background-color: #e6f7ff;
-        color: #007bff;
-        border: 1px solid #007bff;
+        background-color: var(--button-background-color); /* Use variable */
+        color: var(--button-text-color); /* Use variable */
+        border: 1px solid var(--button-text-color); /* Use variable for border */
         padding: 0.25rem 0.5rem;
         border-radius: 0.25rem;
         cursor: pointer;
@@ -672,8 +738,8 @@ def main():
         margin-bottom: 0.5rem;
     }
     .dose-button:hover {
-        background-color: #007bff;
-        color: white;
+        background-color: var(--hover-background-color); /* Use variable */
+        color: var(--hover-text-color); /* Use variable */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -710,7 +776,7 @@ def main():
     st.markdown("---")
     
     # ტაბების შექმნა
-    tab1, tab2, tab3 = st.tabs(["🔍 ძიება", "🧮 დღიური ნორმის კალკულატორი", "📈 ნუტრიენტების მონაცემები"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🔍 ძიება", "🧮 დღიური ნორმის კალკულატორი", "📈 ნუტრიენტების მონაცემები", "✨ შემთხვევითი გეგმა"])
     
     with tab1:
         # მხარეს პანელი ფილტრებისთვის
@@ -822,9 +888,9 @@ def main():
     with tab2:
         st.header("🧮 დღიური ნორმის კალკულატორი")
         st.markdown("დაამატეთ პროდუქტები და მათი რაოდენობა (გრამებში), რათა გამოთვალოთ დღიური ნუტრიენტების ჯამური შემცველობა.")
-        
+
         # სქესის არჩევა
-        gender = st.radio("აირჩიეთ სქესი:", ["მამაკაცი", "ქალი"])
+        gender = st.radio("აირჩიეთ სქესი:", ("მამაკაცი", "ქალი"), key="gender_selector_tab2")
         
         # პროდუქტის არჩევა
         product_options = df['პროდუქტი'].unique().tolist()
@@ -845,7 +911,7 @@ def main():
                         break
                 if not found:
                     st.session_state.selected_products.append({'პროდუქტი': selected_product_name, 'რაოდენობა': amount_g})
-                st.success(f"'{selected_product_name}' დაემატა/განახლდა {amount_g} გრამით.")
+                st.success(f"დაემატა: {amount_g}გ {selected_product_name}")
             else:
                 st.warning("გთხოვთ აირჩიოთ პროდუქტი და შეიყვანოთ დადებითი რაოდენობა.")
         
@@ -931,6 +997,44 @@ def main():
             st.warning("გთხოვთ აირჩიოთ მინიმუმ ერთი ნუტრიენტი მონაცემების საჩვენებლად.")
         else:
             st.dataframe(filtered_df_tab3[display_columns], use_container_width=True)
+
+    with tab4:
+        st.header("✨ შემთხვევითი კვებითი გეგმის გენერატორი")
+        st.markdown("აირჩიეთ სქესი და მიიღეთ შემთხვევითი პროდუქტების სია, რომელიც დაგეხმარებათ დღიური ნუტრიენტების ნორმების შევსებაში.")
+
+        # სქესის არჩევა მეოთხე ტაბისთვის
+        random_plan_gender = st.radio(
+            "აირჩიეთ სქესი გეგმისთვის:",
+            ("ქალი", "მამაკაცი"),
+            key="random_plan_gender_selector",
+            index=0 if st.session_state.random_meal_gender == "ქალი" else 1 # Persist selection
+        )
+        st.session_state.random_meal_gender = random_plan_gender # Update session state
+
+        if st.button("🎲 გეგმის გენერირება", key="generate_random_plan_button"):
+            st.session_state.random_meal_plan = generate_random_meal_plan(random_plan_gender, df)
+            st.success("შემთხვევითი კვებითი გეგმა გენერირებულია!")
+            
+        if st.session_state.random_meal_plan:
+            st.subheader(f"🛒 გენერირებული გეგმა ({st.session_state.random_meal_gender}):")
+            
+            # Show the generated meal plan as a DataFrame
+            meal_plan_df = pd.DataFrame(st.session_state.random_meal_plan)
+            st.dataframe(meal_plan_df, use_container_width=True)
+
+            st.markdown("---")
+            st.subheader("📊 გენერირებული გეგმის ნუტრიენტების ანალიზი:")
+            
+            total_nutrition_random_plan = calculate_daily_nutrition(st.session_state.random_meal_plan, df)
+            recommended_doses_random_plan = get_recommended_doses(st.session_state.random_meal_gender)
+            
+            if total_nutrition_random_plan:
+                display_nutrition_analysis(total_nutrition_random_plan, recommended_doses_random_plan)
+            else:
+                st.warning("ვერ მოხერხდა ნუტრიენტების ანალიზი გენერირებული გეგმისთვის.")
+        else:
+            st.info("დააჭირეთ 'გენერირება' ღილაკს შემთხვევითი კვებითი გეგმის შესაქმნელად.")
+
 
 if __name__ == "__main__":
     main()
