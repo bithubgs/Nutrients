@@ -443,10 +443,11 @@ def calculate_daily_nutrition(selected_products, df):
                 try:
                     total_nutrition[nutrient] += product_data.iloc[0][nutrient] * multiplier
                 except KeyError:
-                    # Handle cases where a nutrient might be missing for a product (though not expected with current data)
                     st.warning(f"გაფრთხილება: ნუტრიენტი '{nutrient}' არ მოიძებნა პროდუქტში '{item['პროდუქტი']}'.")
+                    st.exception(KeyError(f"ნუტრიენტი '{nutrient}' არ მოიძებნა პროდუქტში '{item['პროდუქტი']}'."))
                 except Exception as e:
                     st.error(f"შეცდომა ნუტრიენტის გამოთვლისას {nutrient} for {item['პროდუქტი']}: {e}")
+                    st.exception(e)
     
     return total_nutrition
 
@@ -616,9 +617,11 @@ def search_by_nutrient(df, search_term, min_amount=0):
         results = results.sort_values(nutrient_col, ascending=False)
     except KeyError:
         st.error(f"შეცდომა: სვეტი '{nutrient_col}' არ არსებობს DataFrame-ში. შეამოწმეთ მონაცემები.")
+        st.exception(KeyError(f"სვეტი '{nutrient_col}' არ არსებობს DataFrame-ში."))
         return pd.DataFrame()
     except Exception as e:
         st.error(f"შეცდომა ძიებისას ნუტრიენტით '{search_term}': {e}")
+        st.exception(e)
         return pd.DataFrame()
     
     return results
@@ -636,27 +639,32 @@ def generate_random_meal_plan(gender, df):
     meal_plan = []
     max_products_to_add = 10 # Limit the number of products in the plan
     
-    available_products = df['პროდუქტი'].tolist() # Get all product names
+    # Create a copy of all_nutrients to modify within the loop
+    # This prevents 'all_nutrients.remove(target_nutrient)' from affecting the original list
+    # and causing issues in subsequent iterations or other parts of the code.
+    deficient_nutrients_to_consider = list(all_nutrients) 
 
     for _ in range(max_products_to_add):
-        deficient_nutrients = [
-            n for n in all_nutrients 
-            if recommended_doses[n] > 0 and current_intake[n] < recommended_doses[n] * 0.9 # Check if below 90% of RDA and recommended dose is not zero
+        # Filter out nutrients that are already covered or have no recommended dose
+        current_deficient_nutrients = [
+            n for n in deficient_nutrients_to_consider
+            if recommended_doses[n] > 0 and current_intake[n] < recommended_doses[n] * 0.9 
         ]
         
-        if not deficient_nutrients:
+        if not current_deficient_nutrients:
             break # All major nutrients are covered or no recommended dose for remaining
 
         # Prioritize a random deficient nutrient
-        target_nutrient = random.choice(deficient_nutrients)
+        target_nutrient = random.choice(current_deficient_nutrients)
         
         # Find products rich in this target nutrient
-        # Filter out products that have 0 of this nutrient to avoid selecting useless products
         candidate_products_df = df[df[target_nutrient] > 0].copy()
         
         if candidate_products_df.empty:
-            # If no product has this nutrient, remove it from deficient_nutrients for next iteration
-            all_nutrients.remove(target_nutrient) # This will affect subsequent iterations
+            # If no product has this nutrient, remove it from the list for this iteration
+            # and for future iterations within this meal plan generation attempt.
+            if target_nutrient in deficient_nutrients_to_consider:
+                deficient_nutrients_to_consider.remove(target_nutrient)
             continue 
             
         # Select a random product from the candidates
@@ -671,8 +679,7 @@ def generate_random_meal_plan(gender, df):
         
         # Update current nutrient intake from this added product
         for nutrient_key in all_nutrients:
-            # Ensure the nutrient key exists in the product_data
-            if nutrient_key in selected_product_row.index: # Use .index to check for column existence
+            if nutrient_key in selected_product_row.index: 
                 nutrient_amount_per_100g = selected_product_row[nutrient_key]
                 current_intake[nutrient_key] += (nutrient_amount_per_100g / 100.0) * quantity
                 
@@ -808,7 +815,7 @@ def main():
     with tab1:
         # მხარეს პანელი ფილტრებისთვის
         with st.sidebar:
-            st.header("🔍 ძიების პარამეტრები")
+            st.header("� ძიების პარამეტრები")
             
             # კატეგორიის ფილტრი
             categories = ['ყველა'] + sorted(df['კატეგორია'].unique().tolist())
@@ -1068,3 +1075,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+�
