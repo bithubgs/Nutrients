@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
-import random # დავამატეთ random მოდული
+import random
+from pulp import * # Import everything from PuLP
 
-# (დანარჩენი კოდი უცვლელი რჩება, პროდუქტების მონაცემები, ფუნქციები და ა.შ.)
-
+# (Existing products_data and df remain the same)
+# ... (existing products_data and df here) ...
 # საკვები პროდუქტების მონაცემები
 products_data = {
     'პროდუქტი': [
@@ -611,7 +612,7 @@ def search_by_nutrient(df, search_term, min_amount=0):
     
     return results
 
-# NEW FUNCTION: Generate a random daily ration
+# NEW FUNCTION: Generate a random daily ration (this will be modified to select the initial set)
 def generate_random_ration(df, num_items=5):
     """
     გენერირებს შემთხვევით დღიურ რაციონს პროდუქტების სიიდან.
@@ -622,34 +623,84 @@ def generate_random_ration(df, num_items=5):
     # Determine the number of unique categories to select from
     all_categories = df['კატეგორია'].unique().tolist()
     
-    # If num_items is greater than the number of categories, we might repeat categories
-    # Try to pick one item from each category first, then fill in randomly
-    selected_ration = []
+    selected_ration_products_names = [] # Store just product names for initial selection
     
     # 1. Try to pick at least one product from diverse categories
-    random.shuffle(all_categories) # Shuffle categories to get different starting points
+    random.shuffle(all_categories) 
     for category in all_categories:
-        if len(selected_ration) >= num_items:
+        if len(selected_ration_products_names) >= num_items:
             break
         category_products = df[df['კატეგორია'] == category]['პროდუქტი'].tolist()
         if category_products:
             chosen_product = random.choice(category_products)
-            # Ensure product is not already in the ration
-            if not any(item['პროდუქტი'] == chosen_product for item in selected_ration):
-                # Choose a random quantity between 50g and 300g for variety
-                quantity = random.randint(50, 300)
-                selected_ration.append({'პროდუქტი': chosen_product, 'რაოდენობა': quantity})
+            if chosen_product not in selected_ration_products_names:
+                selected_ration_products_names.append(chosen_product)
 
     # 2. If we still need more items, randomly pick from all available products
-    while len(selected_ration) < num_items:
+    while len(selected_ration_products_names) < num_items:
         chosen_product = random.choice(all_products)
-        # Ensure product is not already in the ration
-        if not any(item['პროდუქტი'] == chosen_product for item in selected_ration):
-            quantity = random.randint(50, 300)
-            selected_ration.append({'პროდუქტი': chosen_product, 'რაოდენობა': quantity})
+        if chosen_product not in selected_ration_products_names:
+            selected_ration_products_names.append(chosen_product)
             
-    return selected_ration
+    return selected_ration_products_names # Return just names now, quantities will be optimized
 
+
+# NEW FUNCTION: Optimize ration quantities using PuLP
+def optimize_ration(selected_product_names, df, recommended_doses, nutrient_keys, tolerance_percent=0.1):
+    """
+    ოპტიმიზირებს პროდუქტების რაოდენობას (გრამებში) შერჩეული ნუტრიენტების
+    რეკომენდებულ დოზებთან მიახლოების მიზნით.
+    """
+    
+    # Create the problem
+    prob = LpProblem("Optimize Daily Ration", LpMinimize)
+    
+    # Variables: Amount of each product in grams
+    # Minimum amount of each product: 5 grams to ensure it's not zero for selected products
+    # Maximum amount of each product: 500 grams (you can adjust this)
+    product_vars = LpVariable.dicts("Product", selected_product_names, 5, 500, LpContinuous)
+
+    # Objective Function: Minimize the deviation from recommended doses
+    # We introduce "slack" variables to handle over/under supply of nutrients
+    # This makes the problem feasible even if exact targets are not met
+    over_supply = LpVariable.dicts("Over", nutrient_keys, 0)
+    under_supply = LpVariable.dicts("Under", nutrient_keys, 0)
+
+    # Minimize sum of over and under supply (absolute deviation)
+    prob += lpSum([over_supply[n] + under_supply[n] for n in nutrient_keys]), "Total Deviation from Recommended Doses"
+    
+    # Constraints: Nutrient requirements
+    for nutrient in nutrient_keys:
+        # Calculate total nutrient from selected products
+        total_nutrient_expr = lpSum([
+            (df[df['პროდუქტი'] == p].iloc[0][nutrient] / 100) * product_vars[p]
+            for p in selected_product_names
+        ])
+        
+        # Get recommended dose for the current gender
+        rec_dose = recommended_doses[nutrient]
+
+        # Lower bound constraint (at least recommended_dose * (1 - tolerance))
+        # We allow a small under_supply if exact target isn't met
+        prob += total_nutrient_expr + under_supply[nutrient] >= rec_dose * (1 - tolerance_percent), f"Min {nutrient}"
+        
+        # Upper bound constraint (at most recommended_dose * (1 + tolerance))
+        # We allow a small over_supply if exact target isn't met
+        prob += total_nutrient_expr - over_supply[nutrient] <= rec_dose * (1 + tolerance_percent), f"Max {nutrient}"
+
+    # Solve the problem
+    prob.solve(PULP_CBC_CMD(msg=0)) # Use CBC solver, set msg=0 to suppress solver output
+
+    optimized_ration = []
+    if LpStatus[prob.status] == "Optimal":
+        for product_name in selected_product_names:
+            amount = product_vars[product_name].varValue
+            if amount > 5: # Only include products with significant amounts (adjust threshold if needed)
+                optimized_ration.append({'პროდუქტი': product_name, 'რაოდენობა': round(amount, 1)})
+        return optimized_ration
+    else:
+        st.warning(f"PuLP Solver Status: {LpStatus[prob.status]}. ვერ მოხერხდა ოპტიმალური რაციონის გენერირება.")
+        return []
 
 # --- სტრიმლიტის აპლიკაცია ---
 def main():
@@ -1051,12 +1102,32 @@ def main():
 
         # დავამატეთ სლაიდერი პროდუქტების რაოდენობის ასარჩევად
         num_ration_items = st.slider("რამდენი პროდუქტი გქონდეთ რაციონში?", min_value=3, max_value=10, value=6, step=1)
+        
+        # სლაიდერი ნუტრიენტების ტოლერანტობისთვის
+        tolerance = st.slider("ნუტრიენტების ნორმიდან გადახრის ტოლერანტობა (%)", min_value=0, max_value=20, value=10, step=1) / 100.0
 
         if st.button("🛠️ რაციონის გენერაცია", key="generate_ration_button"):
-            # რაციონის გენერაციის ლოგიკა
-            st.session_state.generated_ration = generate_random_ration(df, num_items=num_ration_items)
-            st.success("🎉 რაციონი წარმატებით გენერირდა!")
-            # st.rerun() # საჭიროა, რომ მაშინვე განახლდეს მონაცემები, თუ generate_random_ration-მა შეცვალა session_state
+            # 1. შემთხვევითი პროდუქტების საწყისი ნაკრების შერჩევა
+            initial_product_names = generate_random_ration(df, num_items=num_ration_items)
+            
+            # 2. რეკომენდებული დოზების აღება სქესის მიხედვით
+            recommended_doses_for_opt = get_recommended_doses(ration_gender)
+            nutrient_keys_for_opt = [col for col in df.columns if col not in ['პროდუქტი', 'კატეგორია']]
+
+            # 3. PuLP-ით ოპტიმიზაცია
+            st.session_state.generated_ration = optimize_ration(
+                initial_product_names, 
+                df, 
+                recommended_doses_for_opt, 
+                nutrient_keys_for_opt,
+                tolerance_percent=tolerance
+            )
+            
+            if st.session_state.generated_ration:
+                st.success("🎉 რაციონი წარმატებით გენერირდა!")
+            else:
+                st.error("❌ ვერ მოხერხდა ოპტიმალური რაციონის გენერირება მოცემული კრიტერიუმებით. სცადეთ სხვა რაოდენობის პროდუქტები ან შეცვალეთ ტოლერანტობა.")
+            # st.rerun() # Refresh not needed if session_state.generated_ration is updated and displayed below
 
         if st.session_state.generated_ration:
             st.subheader("📋 გენერირებული დღიური რაციონი:")
