@@ -513,7 +513,9 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
 
                 current_amount = total_nutrition[nutrient_key]
                 recommended = recommended_doses[nutrient_key]
-                percentage = (current_amount / recommended) * 100
+                
+                # Handle division by zero for recommended = 0 (though unlikely for these nutrients)
+                percentage = (current_amount / recommended) * 100 if recommended > 0 else 0
                 
                 with cols[i]:
                     # ფერის განსაზღვრა პროცენტის მიხედვით
@@ -541,7 +543,11 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
     for nutrient, name in nutrient_names.items():
         current_amount = total_nutrition[nutrient]
         recommended = recommended_doses[nutrient]
-        percentage = min((current_amount / recommended), 2.0)  # მაქსიმუმ 200%
+        
+        # Handle division by zero
+        percentage_for_progress = 0
+        if recommended > 0:
+            percentage_for_progress = min((current_amount / recommended), 2.0)  # მაქსიმუმ 200%
         
         unit = get_unit(nutrient)
         
@@ -552,7 +558,7 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
         
         with col2_detail:
             # პროგრეს ბარი
-            st.progress(min(percentage, 1.0))
+            st.progress(min(percentage_for_progress, 1.0)) # Ensure progress bar doesn't go over 1.0 (100%) visually
         
         with col3_detail:
             st.write(f"{current_amount:.1f}/{recommended} {unit}")
@@ -566,7 +572,9 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
     for nutrient, name in nutrient_names.items():
         current_amount = total_nutrition[nutrient]
         recommended = recommended_doses[nutrient]
-        percentage = (current_amount / recommended) * 100
+        
+        # Handle division by zero
+        percentage = (current_amount / recommended) * 100 if recommended > 0 else 0
         
         if percentage < 50:
             recommendations.append(f"❗ **{name}**: ძალიან დაბალია ({percentage:.1f}%) - მეტი პროდუქტი დაამატეთ")
@@ -599,6 +607,7 @@ def search_by_nutrient(df, search_term, min_amount=0):
     results = results.sort_values(nutrient_col, ascending=False)
     
     return results
+
 # --- სტრიმლიტის აპლიკაცია ---
 def main():
     st.set_page_config(page_title="საკვები პროდუქტების ვიტამინ-მინერალური ძიება", layout="wide")
@@ -620,23 +629,40 @@ def main():
     # CSS სტაილი კომპაქტური ვიუსთვის
     st.markdown("""
     <style>
-    .stApp {
-        font-size: 14px;
+    /* Global font size and line height adjustments */
+    html, body, .stApp {
+        font-size: 14px; /* Base font size */
+        line-height: 1.5; /* Spacing between lines */
     }
+
+    /* Reduce margins/paddings for common Streamlit elements */
+    .stTextInput, .stSelectbox, .stNumberInput, .stButton, .stRadio, .stExpander {
+        margin-bottom: 0.5rem !important;
+        margin-top: 0.25rem !important; /* Slightly reduce top margin as well */
+    }
+
     .element-container {
         margin-bottom: 0.5rem !important;
     }
     .stMarkdown {
         margin-bottom: 0.5rem !important;
+        margin-top: 0.25rem !important;
     }
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+        font-size:16px; /* Adjust tab font size */
+        margin-bottom: 0px;
+    }
+    
+    /* Specific styling for the nutrition cards */
     .nutrition-card {
         /* Default for light mode */
         background-color: #f8f9fa; 
         color: #333; /* Darker text for light background */
-        padding: 0.5rem;
+        padding: 0.5rem; /* Reduced padding */
         border-radius: 0.25rem;
         margin-bottom: 0.5rem;
         border-left: 3px solid #007bff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow for depth */
     }
     /* Dark mode adjustments */
     @media (prefers-color-scheme: dark) {
@@ -644,6 +670,7 @@ def main():
             background-color: #333333; /* Darker background for dark mode */
             color: #f8f9fa; /* Lighter text for dark background */
             border-left: 3px solid #66b3ff; /* A lighter blue for contrast */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* Adjust shadow for dark mode */
         }
         .nutrition-card h4 {
             color: #f8f9fa !important; /* Ensure heading is light */
@@ -677,6 +704,40 @@ def main():
         background-color: #007bff;
         color: white;
     }
+    /* Compact metric styling */
+    div[data-testid="stMetric"] {
+        background-color: #f0f2f6; /* Light gray background */
+        border-radius: 0.5rem;
+        padding: 0.5rem; /* Reduced padding */
+        margin-bottom: 0.5rem;
+        border: 1px solid #e0e2e6;
+    }
+    @media (prefers-color-scheme: dark) {
+        div[data-testid="stMetric"] {
+            background-color: #26272e; /* Darker background for dark mode */
+            border: 1px solid #3d404d;
+        }
+    }
+    div[data-testid="stMetric"] label {
+        font-size: 0.9em; /* Smaller label font */
+        font-weight: bold;
+    }
+    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+        font-size: 1.1em; /* Slightly larger value font */
+    }
+    div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
+        font-size: 0.8em; /* Smaller delta font */
+    }
+
+    /* Adjust expander spacing */
+    .stExpander div[data-testid="stExpanderForm"] {
+        padding: 0.5rem; /* Reduce internal padding of expander */
+    }
+    .stExpander details summary {
+        padding: 0.5rem 0.75rem; /* Padding for the summary (header) of the expander */
+        margin-bottom: 0.25rem; /* Space below expander header */
+    }
+
     </style>
     """, unsafe_allow_html=True)
     
@@ -794,15 +855,17 @@ def main():
                     category_data = filtered_df[filtered_df['კატეგორია'] == category]
                     
                     # გრიდის ფორმატში ჩვენება
-                    cols_grid = st.columns(2)  # 2 სვეტიანი გრიდი
+                    # Adjust columns to be 3 for wider screens for more compactness
+                    cols_grid = st.columns(3)  
                     
                     for idx, (_, row) in enumerate(category_data.iterrows()):
-                        with cols_grid[idx % 2]:
+                        with cols_grid[idx % 3]: # Changed from % 2 to % 3 for 3 columns
                             # პროდუქტის ბარათი ყველა ვიტამინ-მინერალით
+                            # Reduced font size within the card and less padding
                             nutrition_info = f"""
                             <div class="nutrition-card">
-                                <h4 style="margin: 0 0 0.5rem 0;">{row['პროდუქტი']}</h4>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; font-size: 12px;">
+                                <h4 style="margin: 0 0 0.25rem 0; font-size: 1.1em;">{row['პროდუქტი']}</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.15rem; font-size: 0.85em;"> 
                                     <div>🔶 რკინა: <span class="nutrition-value">{row['რკინა_მგ']} მგ</span></div>
                                     <div>🔷 B12: <span class="nutrition-value">{row['B12_მკგ']} მკგ</span></div>
                                     <div>🟢 ფოლატი: <span class="nutrition-value">{row['ფოლატი_მკგ']} მკგ</span></div>
@@ -826,7 +889,7 @@ def main():
         st.markdown("დაამატეთ პროდუქტები და მათი რაოდენობა (გრამებში), რათა გამოთვალოთ დღიური ნუტრიენტების ჯამური შემცველობა.")
         
         # სქესის არჩევა
-        gender = st.radio("აირჩიეთ სქესი:", ["მამაკაცი", "ქალი"], key="gender_tab2") # Add unique key
+        gender = st.radio("აირჩიეთ სქესი:", ["მამაკაცი", "ქალი"], key="gender_tab2", horizontal=True) # Make radio buttons horizontal for compactness
         
         # პროდუქტის არჩევა
         product_options = df['პროდუქტი'].unique().tolist()
@@ -939,7 +1002,7 @@ def main():
         st.markdown("ამ ფუნქციის გამოყენებით შეგიძლიათ გენერირება დღიური რაციონი თქვენი სქესის მიხედვით, რომელიც დააბალანსებს აუცილებელ ნუტრიენტებს.")
         
         # სქესის არჩევა რაციონის გენერაციისთვის
-        ration_gender = st.radio("აირჩიეთ სქესი რაციონის გენერაციისთვის:", ["მამაკაცი", "ქალი"], key="ration_gender_selector")
+        ration_gender = st.radio("აირჩიეთ სქესი რაციონის გენერაციისთვის:", ["მამაკაცი", "ქალი"], key="ration_gender_selector", horizontal=True) # Make radio buttons horizontal
         
         st.markdown("---")
 
