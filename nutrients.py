@@ -614,7 +614,10 @@ def main():
     # Initialize session state for the multiselect in tab3
     if 'nutrients_multiselect_tab3' not in st.session_state:
         st.session_state.nutrients_multiselect_tab3 = []
-    
+    # Initialize session state for generated ration (new for tab4)
+    if 'generated_ration' not in st.session_state:
+        st.session_state.generated_ration = []
+
     # CSS სტაილი კომპაქტური ვიუსთვის
     st.markdown("""
     <style>
@@ -710,7 +713,7 @@ def main():
     st.markdown("---")
     
     # ტაბების შექმნა
-    tab1, tab2, tab3 = st.tabs(["🔍 ძიება", "🧮 დღიური ნორმის კალკულატორი", "📈 ნუტრიენტების მონაცემები"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🔍 ძიება", "🧮 დღიური ნორმის კალკულატორი", "📈 ნუტრიენტების მონაცემები", "✨ დღიური რაციონის შედგენა"])
     
     with tab1:
         # მხარეს პანელი ფილტრებისთვის
@@ -824,7 +827,7 @@ def main():
         st.markdown("დაამატეთ პროდუქტები და მათი რაოდენობა (გრამებში), რათა გამოთვალოთ დღიური ნუტრიენტების ჯამური შემცველობა.")
         
         # სქესის არჩევა
-        gender = st.radio("აირჩიეთ სქესი:", ["მამაკაცი", "ქალი"])
+        gender = st.radio("აირჩიეთ სქესი:", ["მამაკაცი", "ქალი"], key="gender_tab2") # Add unique key
         
         # პროდუქტის არჩევა
         product_options = df['პროდუქტი'].unique().tolist()
@@ -931,6 +934,63 @@ def main():
             st.warning("გთხოვთ აირჩიოთ მინიმუმ ერთი ნუტრიენტი მონაცემების საჩვენებლად.")
         else:
             st.dataframe(filtered_df_tab3[display_columns], use_container_width=True)
+
+    with tab4:
+        st.header("✨ დღიური რაციონის შედგენა")
+        st.markdown("ამ ფუნქციის გამოყენებით შეგიძლიათ გენერირება დღიური რაციონი თქვენი სქესის მიხედვით, რომელიც დააბალანსებს აუცილებელ ნუტრიენტებს.")
+        
+        # სქესის არჩევა რაციონის გენერაციისთვის
+        ration_gender = st.radio("აირჩიეთ სქესი რაციონის გენერაციისთვის:", ["მამაკაცი", "ქალი"], key="ration_gender_selector")
+        
+        st.markdown("---")
+
+        if st.button("🛠️ რაციონის გენერაცია", key="generate_ration_button"):
+            # Placeholder for ration generation logic
+            st.info(f"რაციონის გენერაცია {ration_gender}ისთვის...")
+            
+            # --- აქ განთავსდება რაციონის გენერაციის ლოგიკა ---
+            # ეს არის მხოლოდ მაგალითი, თქვენ უნდა შეიმუშაოთ ალგორითმი,
+            # რომელიც შეარჩევს პროდუქტებს და მათ რაოდენობას
+            # რეკომენდებული დღიური დოზების მისაღწევად.
+            
+            # მაგალითად, შეგიძლიათ:
+            # 1. მიიღოთ რეკომენდებული დოზები 'ration_gender'-ისთვის.
+            # 2. შეიმუშაოთ ალგორითმი, რომელიც შემთხვევით ან ოპტიმიზებულად შეარჩევს პროდუქტებს DataFrame-დან.
+            # 3. გამოთვალოთ თითოეული შერჩეული პროდუქტის რაოდენობა, რათა მიაღწიოთ სამიზნე ნუტრიენტებს.
+            # 4. შეინახოთ გენერირებული რაციონი `st.session_state.generated_ration`-ში.
+            
+            # ამ დროისთვის, უბრალოდ ვაჩვენებთ dummy მონაცემებს
+            # 실제 რაციონის გენერაციის ფუნქცია უნდა იყოს აქ.
+            
+            st.session_state.generated_ration = [
+                {'პროდუქტი': 'ქათმის მკერდი', 'რაოდენობა': 150},
+                {'პროდუქტი': 'ბროკოლი', 'რაოდენობა': 200},
+                {'პროდუქტი': 'ორაგული (ველური)', 'რაოდენობა': 100},
+                {'პროდუქტი': 'ისპანახი', 'რაოდენობა': 100},
+                {'პროდუქტი': 'ნუში', 'რაოდენობა': 30},
+                {'პროდუქტი': 'იოგურტი (ბერძნული)', 'რაოდენობა': 150}
+            ]
+            st.success("🎉 რაციონი წარმატებით გენერირდა!")
+
+        if st.session_state.generated_ration:
+            st.subheader("📋 გენერირებული დღიური რაციონი:")
+            generated_ration_df = pd.DataFrame(st.session_state.generated_ration)
+            st.dataframe(generated_ration_df, use_container_width=True)
+
+            # Display nutrition analysis for the generated ration (reusing existing function)
+            total_nutrition_generated = calculate_daily_nutrition(st.session_state.generated_ration, df)
+            if total_nutrition_generated:
+                st.subheader("📊 გენერირებული რაციონის ნუტრიენტების ანალიზი:")
+                recommended_doses_for_ration = get_recommended_doses(ration_gender)
+                display_nutrition_analysis(total_nutrition_generated, recommended_doses_for_ration)
+            
+            if st.button("🗑️ გენერირებული რაციონის გასუფთავება", key="clear_generated_ration"):
+                st.session_state.generated_ration = []
+                st.success("გენერირებული რაციონი გასუფთავებულია.")
+                st.rerun() # Refresh to clear display
+
+        else:
+            st.info("დააჭირეთ 'რაციონის გენერაცია' ღილაკს, რათა შექმნათ თქვენი დღიური რაციონი.")
 
 if __name__ == "__main__":
     main()
