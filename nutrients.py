@@ -1,7 +1,265 @@
 import streamlit as st
 import pandas as pd
 
-# ... (Your existing products_data and DataFrame creation remain the same) ...
+# საკვები პროდუქტების მონაცემები
+products_data = {
+    'პროდუქტი': [
+        'საქონლის ხორცი (მჭლე)', 'ღორის ღვიძლი', 'ქათმის მკერდი', 'ქათმის ღვიძლი',
+        'ორაგული (ველური)', 'თინუსი (დაკონსერვებული, წყალში)', 'სარდინი (ზეთში, ძვლებით)', 'კრევეტები', 'მიდიები',
+        'ისპანახი', 'ბროკოლი', 'ავოკადო', 'სტაფილო', 'ბანანი', 'ტკბილი კარტოფილი', 'კომბოსტო', 'წითელი ბულგარული წიწაკა',
+        'კარაქი', 'რძე (მთლიანი)', 'იოგურტი (ბერძნული)', 'ყველი (ჩედარი)', 'კვერცხი', 'ხაჭო',
+        'შავი ლობიო', 'ნუში', 'ნიგოზი', 'ჩიას თესლი', 'მზესუმზირის თესლი', 'ოსპი', 'წიწიბურა',
+        'ზღვის კალმახი', 'სპირულინა', 'ქლორელა', 'ყავისფერი ბრინჯი', 'კინოა', 'შვრია',
+        'ვირთევზა', 'სკუმბრია', 'პორტობელო სოკო', 'ინდაურის ხორცი', 'ცხვრის ხორცი', 'ხბოს ხორცი',
+        'ფორთოხალი', 'კივი', 'მარწყვი', 'მოცვი', 'ვაშლი',
+        'სოიოს რძე (გამაგრებული)', 'ტოფუ', 'შავი შოკოლადი (70%+ კაკაო)', 'საფუარის ექსტრაქტი', 'ქატო',
+        'მიწისთხილის კარაქი', 'ქოქოსის რძე', 'თეთრი ლობიო', 'მწვანე ლობიო', 'ხმელი გარგარი',
+        'გოგრის თესლი', 'კეშიუ', 'ფიჭვის კაკალი', 'ჩიტიფეხა', 'ბარდა', 'კამა', 'ოხრახუში',
+        'ფისტა', 'ბრაზილიური კაკალი', 'ნიორი', 'ჯანჯაფილი',
+        # დამატებული პროდუქტები C და D ვიტამინებით
+        'წითელი კომბოსტო', 'ლიმონი', 'გრეიპფრუტი', 'კალე', 'ბრიუსელის კომბოსტო',
+        'თევზის ქონი (კოდის)', 'შამპინიონი (D ვიტამინით გამდიდრებული)', 'ძროხის რძე (D ვიტამინით გამდიდრებული)'
+    ],
+    'კატეგორია': [
+        'ხორცი', 'ღვიძლი', 'ხორცი', 'ღვიძლი',
+        'თევზი', 'თევზი', 'თევზი', 'ზღვის პროდუქტები', 'ზღვის პროდუქტები',
+        'ბოსტნეული', 'ბოსტნეული', 'ხილი', 'ბოსტნეული', 'ხილი', 'ბოსტნეული', 'ბოსტნეული', 'ბოსტნეული',
+        'რძის პროდუქტები', 'რძის პროდუქტები', 'რძის პროდუქტები', 'რძის პროდუქტები', 'კვერცხი', 'რძის პროდუქტები',
+        'პარკოსნები', 'კაკალი და თესლი', 'კაკალი და თესლი', 'კაკალი და თესლი', 'კაკალი და თესლი', 'პარკოსნები', 'მარცვლეული',
+        'თევზი', 'სუპერფუდი', 'სუპერფუდი', 'მარცვლეული', 'მარცვლეული', 'მარცვლეული',
+        'თევზი', 'თევზი', 'სოკო', 'ხორცი', 'ხორცი', 'ხორცი',
+        'ხილი', 'ხილი', 'ხილი', 'ხილი', 'ხილი',
+        'მცენარეული რძე', 'სოიოს პროდუქტები', 'საკონდიტრო ნაწარმი', 'სუპერფუდი', 'მარცვლეული',
+        'პარკოსნები', 'მცენარეული რძე', 'პარკოსნები', 'პარკოსნები', 'ხილი',
+        'გოგრის თესლი', 'კეშიუ', 'ფიჭვის კაკალი', 'ბოსტნეული', 'პარკოსნები', 'ბოსტნეული', 'ბოსტნეული',
+        'კაკალი და თესლი', 'კაკალი და თესლი', 'ბოსტნეული', 'ბოსტნეული',
+        # დამატებული პროდუქტების კატეგორიები
+        'ბოსტნეული', 'ხილი', 'ხილი', 'ბოსტნეული', 'ბოსტნეული',
+        'თევზის პროდუქტები', 'სოკო', 'რძის პროდუქტები'
+    ],
+    'რკინა_მგ': [
+        3.3, 30.5, 0.9, 13.0,
+        0.8, 1.3, 2.9, 1.8, 6.7,
+        2.7, 0.7, 0.6, 0.3, 0.3, 0.7, 0.5, 0.5,
+        0.2, 0.03, 0.1, 0.4, 1.2, 0.4,
+        6.2, 2.9, 2.7, 7.7, 5.2, 7.5, 2.2,
+        90.0, 28.5, 58.0, 0.8, 4.6, 4.0,
+        1.0, 1.6, 0.5, 2.5, 2.1, 3.5,
+        0.1, 0.3, 0.3, 0.2, 0.2,
+        0.5, 2.0, 3.0, 1.5, 10.0,
+        1.5, 0.5, 6.0, 1.0, 1.5,
+        3.3, 4.0, 5.0, 1.5, 1.5, 1.0, 2.0,
+        3.9, 2.5, 1.7, 0.6,
+        # დამატებული პროდუქტების მონაცემები
+        0.5, 0.2, 0.2, 1.5, 0.5,
+        0.1, 0.2, 0.1
+    ],
+    'B12_მკგ': [
+        2.6, 83.1, 0.3, 16.6,
+        4.9, 4.3, 8.9, 1.1, 24.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.2, 0.4, 0.5, 0.8, 0.6, 0.4,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        1.5, 175.0, 65.0, 0.0, 0.0, 0.0,
+        5.4, 19.0, 0.0, 0.4, 2.1, 3.0,
+        0.0, 0.0, 0.0, 0.0, 0.0,
+        2.4, 0.0, 0.0, 5.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        # დამატებული პროდუქტების მონაცემები
+        0.0, 0.0, 0.0, 0.0, 0.0,
+        100.0, 0.0, 1.2
+    ],
+    'ფოლატი_მკგ': [
+        4, 290, 3, 588,
+        26, 5, 10, 3, 76,
+        194, 63, 81, 3, 20, 40, 107, 24,
+        3, 5, 7, 27, 47, 24,
+        394, 28, 45, 49, 227, 181, 30,
+        180, 94, 23, 8, 184, 56,
+        12, 2, 17, 4, 7, 5,
+        30, 25, 20, 6, 3,
+        50, 29, 30, 50, 160,
+        60, 15, 200, 33, 10,
+        15, 60, 80, 15, 30, 150, 170,
+        70, 10, 15, 10,
+        # დამატებული პროდუქტების მონაცემები
+        30, 30, 20, 140, 60,
+        0, 17, 5
+    ],
+    'C_ვიტამინი_მგ': [
+        0, 1, 0, 17,
+        0, 0, 0, 2, 8,
+        28, 89, 10, 6, 9, 20, 36, 128,
+        0, 0, 0, 0, 0, 0,
+        2, 1, 1, 0, 1, 5, 0,
+        3, 10, 9, 0, 0, 0,
+        0, 0, 2, 0, 0, 0,
+        53, 93, 59, 10, 4,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 5, 1,
+        0, 0, 0, 20, 10, 85, 133,
+        0, 0, 5, 5,
+        # დამატებული პროდუქტების მონაცემები
+        60, 53, 40, 120, 110,
+        0, 2, 1
+    ],
+    'D_ვიტამინი_IU': [
+        3, 15, 0, 44,
+        360, 154, 164, 5, 76,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        142, 115, 5, 24, 82, 0,
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0,
+        388, 388, 375, 6, 53, 7,
+        0, 0, 0, 0, 0,
+        100, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0,
+        # დამატებული პროდუქტების მონაცემები
+        0, 0, 0, 0, 0,
+        1360, 1000, 100
+    ],
+    'კალციუმი_მგ': [
+        12, 5, 8, 8,
+        12, 4, 382, 70, 26,
+        99, 47, 12, 6, 5, 30, 40, 10,
+        24, 113, 110, 721, 50, 83,
+        113, 37, 28, 177, 78, 35, 20,
+        1170, 120, 74, 23, 47, 52,
+        20, 12, 3, 10, 7, 12,
+        40, 34, 13, 8, 7,
+        300, 350, 100, 20, 200,
+        20, 10, 150, 50, 5,
+        50, 60, 10, 50, 30, 200, 170,
+        100, 160, 20, 10,
+        # დამატებული პროდუქტების მონაცემები
+        40, 30, 20, 150, 60,
+        10, 5, 120
+    ],
+    'მაგნიუმი_მგ': [
+        20, 18, 29, 19,
+        29, 64, 39, 39, 34,
+        79, 21, 29, 12, 27, 25, 12, 10,
+        2, 10, 11, 28, 10, 8,
+        140, 158, 183, 335, 325, 36, 112,
+        560, 195, 315, 143, 197, 138,
+        27, 97, 9, 25, 17, 25,
+        10, 15, 10, 12, 5,
+        25, 50, 100, 15, 50,
+        50, 15, 150, 20, 10,
+        262, 292, 251, 20, 40, 50, 30,
+        121, 197, 25, 18,
+        # დამატებული პროდუქტების მონაცემები
+        15, 10, 12, 30, 20,
+        5, 10, 12
+    ],
+    'კალიუმი_მგ': [
+        350, 320, 300, 290,
+        363, 290, 397, 259, 290,
+        558, 316, 487, 300, 358, 337, 250, 211,
+        24, 150, 170, 90, 138, 150,
+        644, 705, 440, 407, 894, 900, 380,
+        990, 800, 700, 220, 170, 429,
+        290, 360, 260, 300, 320, 380,
+        180, 200, 150, 150, 100,
+        150, 120, 100, 50, 250,
+        350, 150, 600, 200, 300,
+        500, 600, 700, 400, 450, 500, 450,
+        700, 600, 400, 415,
+        # დამატებული პროდუქტების მონაცემები
+        250, 100, 150, 350, 280,
+        0, 200, 150
+    ],
+    'თუთია_მგ': [
+        4.0, 7.0, 0.4, 2.7,
+        0.6, 0.8, 1.3, 0.6, 1.3,
+        0.1, 0.2, 0.4, 0.1, 0.2, 0.2, 0.2, 0.1,
+        0.1, 0.4, 0.5, 3.0, 1.1, 0.5,
+        3.0, 0.9, 0.9, 3.5, 5.0, 1.3, 1.3,
+        4.0, 0.7, 0.5, 0.8, 2.0, 2.0,
+        0.5, 1.2, 0.5, 2.0, 2.5, 4.5,
+        0.1, 0.1, 0.1, 0.1, 0.1,
+        0.8, 0.8, 1.0, 0.5, 2.0,
+        0.5, 0.1, 2.0, 0.3, 0.2,
+        2.0, 1.5, 1.0, 0.5, 0.5, 0.5, 0.5,
+        1.5, 2.0, 0.3, 0.3,
+        # დამატებული პროდუქტების მონაცემები
+        0.1, 0.1, 0.1, 0.2, 0.2,
+        0.1, 0.5, 0.4
+    ],
+    'A_ვიტამინი_მკგ_RAE': [
+        1, 1000, 10, 800,
+        20, 20, 10, 10, 10,
+        469, 31, 7, 835, 3, 709, 5, 47,
+        100, 50, 10, 100, 50, 20,
+        1, 0, 0, 0, 0, 1, 0,
+        5, 300, 200, 0, 0, 0,
+        10, 30, 0, 5, 5, 10,
+        22, 23, 30, 10, 5,
+        50, 0, 0, 0, 0,
+        0, 0, 0, 10, 10,
+        0, 0, 0, 10, 10, 50, 100,
+        0, 0, 10, 0,
+        # დამატებული პროდუქტების მონაცემები
+        50, 10, 15, 500, 250,
+        5, 0, 60
+    ],
+    'E_ვიტამინი_მგ_ATE': [
+        0.5, 0.5, 0.2, 0.3,
+        0.8, 0.2, 0.2, 0.1, 0.1,
+        0.3, 0.8, 2.1, 0.7, 0.4, 0.3, 0.1, 1.6,
+        0.8, 0.1, 0.1, 0.1, 0.5, 0.1,
+        0.0, 7.7, 2.7, 0.5, 35.0, 0.1, 0.1,
+        0.1, 0.1, 0.1, 0.0, 0.0, 0.1,
+        0.1, 0.5, 0.1, 0.1, 0.1, 0.2,
+        0.2, 0.1, 0.4, 0.2, 0.1,
+        0.1, 0.0, 0.5, 0.0, 0.5,
+        0.1, 0.1, 0.0, 0.1, 0.1,
+        0.1, 2.0, 1.0, 0.5, 0.2, 0.5, 0.2,
+        2.9, 0.5, 0.1, 0.1,
+        # დამატებული პროდუქტების მონაცემები
+        0.2, 0.1, 0.2, 0.5, 0.3,
+        0.1, 0.1, 0.1
+    ],
+    'K_ვიტამინი_მკგ': [
+        1, 3, 0, 5,
+        5, 0, 0, 0, 0,
+        483, 102, 21, 19, 0, 21, 109, 14,
+        7, 0, 0, 0, 0, 0,
+        4, 0, 0, 0, 0, 4, 0,
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 25, 3, 160, 200,
+        0, 0, 0, 0,
+        # დამატებული პროდუქტების მონაცემები
+        80, 0, 0, 681, 177,
+        0, 0, 0
+    ],
+    'სელენი_მკგ': [
+        35, 50, 20, 50,
+        40, 90, 55, 30, 20,
+        1, 1, 0.4, 0.2, 0.1, 0.6, 0.3, 0.1,
+        1, 2, 2, 10, 15, 2,
+        0.6, 0.2, 0.1, 0.4, 0.4, 0.6, 0.3,
+        150, 4, 2, 10, 5, 10,
+        100, 80, 0.5, 20, 25, 40,
+        0.1, 0.1, 0.1, 0.1, 0.1,
+        10, 10, 5, 20, 50,
+        5, 1, 1, 1, 1,
+        10, 1, 1, 0.5, 0.5, 1, 1,
+        10, 544, 0.6, 0.2,
+        # დამატებული პროდუქტების მონაცემები
+        0.3, 0.1, 0.1, 0.5, 0.4,
+        80, 5, 5
+    ]
+}
+
 # DataFrame-ის შექმნა
 df = pd.DataFrame(products_data)
 
@@ -326,7 +584,7 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
 def search_by_nutrient(df, search_term, min_amount=0):
     """ვიძებთ პროდუქტებს კონკრეტული ნუტრიენტის მიხედვით"""
     # ვიყენებთ გაუმჯობესებულ ფუნქციას
-    nutrient_col = find_nutrient_column(search_term)
+    nutrient_col = find_nutrient_column(search_term)    
     
     if not nutrient_col:
         return pd.DataFrame()
@@ -360,33 +618,8 @@ def main():
     # CSS სტაილი კომპაქტური ვიუსთვის
     st.markdown("""
     <style>
-    /* Define CSS variables for colors that adapt to theme */
-    :root {
-        --primary-text-color: #333;
-        --secondary-text-color: #666;
-        --card-background-color: #f8f9fa;
-        --card-border-color: #007bff;
-        --button-background-color: #e6f7ff;
-        --button-text-color: #007bff;
-        --hover-background-color: #007bff;
-        --hover-text-color: white;
-    }
-
-    /* Dark mode adjustments using the data-theme attribute */
-    [data-theme="dark"] {
-        --primary-text-color: #f0f2f6; /* Lighter text for dark mode */
-        --secondary-text-color: #bbb;
-        --card-background-color: #26272e; /* Darker background for cards */
-        --card-border-color: #007bff; /* Keep primary blue border */
-        --button-background-color: #31333f; /* Darker button background */
-        --button-text-color: #8bb4ff; /* Lighter blue for button text */
-        --hover-background-color: #007bff;
-        --hover-text-color: white;
-    }
-
     .stApp {
         font-size: 14px;
-        color: var(--primary-text-color); /* Use variable for app text color */
     }
     .element-container {
         margin-bottom: 0.5rem !important;
@@ -395,24 +628,41 @@ def main():
         margin-bottom: 0.5rem !important;
     }
     .nutrition-card {
-        background-color: var(--card-background-color); /* Use variable */
+        /* Default for light mode */
+        background-color: #f8f9fa; 
+        color: #333; /* Darker text for light background */
         padding: 0.5rem;
         border-radius: 0.25rem;
         margin-bottom: 0.5rem;
-        border-left: 3px solid var(--card-border-color); /* Use variable */
+        border-left: 3px solid #007bff;
     }
-    .nutrition-card h4 {
-        color: var(--primary-text-color); /* Use variable */
-        margin: 0 0 0.5rem 0;
+    /* Dark mode adjustments */
+    @media (prefers-color-scheme: dark) {
+        .nutrition-card {
+            background-color: #333333; /* Darker background for dark mode */
+            color: #f8f9fa; /* Lighter text for dark background */
+            border-left: 3px solid #66b3ff; /* A lighter blue for contrast */
+        }
+        .nutrition-card h4 {
+            color: #f8f9fa !important; /* Ensure heading is light */
+        }
+        .nutrition-value {
+            color: #99ccff !important; /* Lighter blue for values */
+        }
+        /* Adjusting Streamlit's default text color for general elements if needed */
+        .stMarkdown, .stText, .stLabel {
+            color: #f8f9fa; /* Light text for general markdown/text */
+        }
     }
+
     .nutrition-value {
         font-weight: bold;
-        color: var(--button-text-color); /* Use a more appropriate variable or keep original blue */
+        color: #007bff; /* This will be overridden for dark mode by the @media query */
     }
     .dose-button {
-        background-color: var(--button-background-color); /* Use variable */
-        color: var(--button-text-color); /* Use variable */
-        border: 1px solid var(--button-text-color); /* Use variable for border */
+        background-color: #e6f7ff;
+        color: #007bff;
+        border: 1px solid #007bff;
         padding: 0.25rem 0.5rem;
         border-radius: 0.25rem;
         cursor: pointer;
@@ -422,8 +672,8 @@ def main():
         margin-bottom: 0.5rem;
     }
     .dose-button:hover {
-        background-color: var(--hover-background-color); /* Use variable */
-        color: var(--hover-text-color); /* Use variable */
+        background-color: #007bff;
+        color: white;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -549,8 +799,8 @@ def main():
                             # პროდუქტის ბარათი ყველა ვიტამინ-მინერალით
                             nutrition_info = f"""
                             <div class="nutrition-card">
-                                <h4 style="margin: 0 0 0.5rem 0; color: var(--primary-text-color);">{row['პროდუქტი']}</h4>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; font-size: 12px; color: var(--secondary-text-color);">
+                                <h4 style="margin: 0 0 0.5rem 0;">{row['პროდუქტი']}</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; font-size: 12px;">
                                     <div>🔶 რკინა: <span class="nutrition-value">{row['რკინა_მგ']} მგ</span></div>
                                     <div>🔷 B12: <span class="nutrition-value">{row['B12_მკგ']} მკგ</span></div>
                                     <div>🟢 ფოლატი: <span class="nutrition-value">{row['ფოლატი_მკგ']} მკგ</span></div>
@@ -568,86 +818,119 @@ def main():
                             </div>
                             """
                             st.markdown(nutrition_info, unsafe_allow_html=True)
-
+    
     with tab2:
         st.header("🧮 დღიური ნორმის კალკულატორი")
-        st.write("აქ შეგიძლიათ აირჩიოთ პროდუქტები და მათი რაოდენობა, რათა გამოთვალოთ დღიური ნუტრიენტების ჯამი.")
-
-        # სქესის არჩევა
-        gender = st.radio("აირჩიეთ სქესი:", ("მამაკაცი", "ქალი"))
+        st.markdown("დაამატეთ პროდუქტები და მათი რაოდენობა (გრამებში), რათა გამოთვალოთ დღიური ნუტრიენტების ჯამური შემცველობა.")
         
-        # პროდუქტის დამატება
-        product_options = sorted(df['პროდუქტი'].unique().tolist())
-        col1_add, col2_add, col3_add = st.columns([4, 2, 1])
-
-        with col1_add:
-            selected_product_to_add = st.selectbox("აირჩიეთ პროდუქტი:", product_options, key="select_product_calc")
-        with col2_add:
-            amount_to_add = st.number_input("რაოდენობა (გრამი):", min_value=1, value=100, step=10, key="amount_calc")
-        with col3_add:
-            st.markdown("<br>", unsafe_allow_html=True) # Space for alignment
-            if st.button("➕ დამატება", key="add_product_calc"):
-                if selected_product_to_add:
-                    st.session_state.selected_products.append({
-                        'პროდუქტი': selected_product_to_add,
-                        'რაოდენობა': amount_to_add
-                    })
-                    st.success(f"დაემატა: {amount_to_add}გ {selected_product_to_add}")
-                else:
-                    st.warning("გთხოვთ აირჩიოთ პროდუქტი.")
+        # სქესის არჩევა
+        gender = st.radio("აირჩიეთ სქესი:", ["მამაკაცი", "ქალი"])
+        
+        # პროდუქტის არჩევა
+        product_options = df['პროდუქტი'].unique().tolist()
+        selected_product_name = st.selectbox("აირჩიეთ პროდუქტი:", product_options, key="product_selector_tab2")
+        
+        # რაოდენობის შეყვანა
+        amount_g = st.number_input("რაოდენობა (გრამებში):", min_value=1.0, value=100.0, step=10.0, key="amount_input_tab2")
+        
+        # პროდუქტის დამატება სიაში
+        if st.button("➕ პროდუქტის დამატება", key="add_product_button_tab2"):
+            if selected_product_name and amount_g > 0:
+                # შემოწმება დუბლიკატებზე (შეცვლა თუ უკვე არსებობს)
+                found = False
+                for i, item in enumerate(st.session_state.selected_products):
+                    if item['პროდუქტი'] == selected_product_name:
+                        st.session_state.selected_products[i]['რაოდენობა'] = amount_g
+                        found = True
+                        break
+                if not found:
+                    st.session_state.selected_products.append({'პროდუქტი': selected_product_name, 'რაოდენობა': amount_g})
+                st.success(f"'{selected_product_name}' დაემატა/განახლდა {amount_g} გრამით.")
+            else:
+                st.warning("გთხოვთ აირჩიოთ პროდუქტი და შეიყვანოთ დადებითი რაოდენობა.")
         
         st.markdown("---")
-        st.subheader("🛒 თქვენი არჩეული პროდუქტები:")
         
+        st.subheader("🛒 თქვენი არჩეული პროდუქტები:")
         if st.session_state.selected_products:
-            for i, item in enumerate(st.session_state.selected_products):
-                col_item, col_remove = st.columns([5, 1])
-                with col_item:
-                    st.write(f"- **{item['პროდუქტი']}**: {item['რაოდენობა']} გრამი")
-                with col_remove:
-                    if st.button("❌ წაშლა", key=f"remove_{i}"):
-                        st.session_state.selected_products.pop(i)
-                        st.experimental_rerun() # Rerun to update the list immediately
+            # ცხრილის ჩვენება და რედაქტირება
+            
+            # გადაყვანა DataFrame-ში დინამიური რედაქტირებისთვის
+            selected_df = pd.DataFrame(st.session_state.selected_products)
+            
+            edited_df = st.data_editor(
+                selected_df,
+                num_rows="dynamic",
+                use_container_width=True,
+                column_config={
+                    "პროდუქტი": st.column_config.Column(
+                        "პროდუქტი",
+                        help="პროდუქტის სახელი",
+                        disabled=True,
+                    ),
+                    "რაოდენობა": st.column_config.NumberColumn(
+                        "რაოდენობა (გრამებში)",
+                        help="პროდუქტის რაოდენობა გრამებში",
+                        min_value=1.0,
+                        step=10.0,
+                        format="%f გ",
+                    ),
+                },
+                key="selected_products_editor"
+            )
+            
+            # განვაახლოთ session state რედაქტირებული DataFrame-დან
+            st.session_state.selected_products = edited_df.to_dict('records')
+            
+            if st.button("❌ სიის გასუფთავება", key="clear_selected_products"):
+                st.session_state.selected_products = []
+                st.success("პროდუქტების სია გასუფთავებულია.")
+                st.rerun() # აუცილებელია ცვლილებების ასახვისთვის
             
             st.markdown("---")
+            
+            # ნუტრიენტების გაანგარიშება
             total_nutrition = calculate_daily_nutrition(st.session_state.selected_products, df)
             
             if total_nutrition:
-                st.subheader("📊 დღიური ნუტრიენტების ჯამი:")
+                st.subheader("📊 დღიური ნუტრიენტების ანალიზი:")
                 recommended_doses = get_recommended_doses(gender)
                 display_nutrition_analysis(total_nutrition, recommended_doses)
+            else:
+                st.info("დაამატეთ პროდუქტები დღიური ნორმის სანახავად.")
         else:
-            st.info("არჩეული პროდუქტები არ არის.")
-        
-        if st.session_state.selected_products:
-            if st.button("🗑️ ყველა პროდუქტის გასუფთავება", key="clear_all_selected_products_calc"):
-                st.session_state.selected_products = []
-                st.experimental_rerun()
-
-
+            st.info("პროდუქტები არ არის დამატებული.")
+    
     with tab3:
-        st.header("📈 ნუტრიენტების მონაცემები")
-        st.write("აქ შეგიძლიათ დაათვალიეროთ ნუტრიენტების მონაცემები პროდუქტების მიხედვით.")
-
-        # ნუტრიენტების მულტისელექტი
-        all_nutrients = [col for col in df.columns if col not in ['პროდუქტი', 'კატეგორია']]
-        selected_nutrients_tab3 = st.multiselect(
+        st.header("📈 ნუტრიენტების სრული მონაცემები")
+        st.markdown("იხილეთ ყველა პროდუქტის და ნუტრიენტის დეტალური მონაცემები.")
+        
+        # ფილტრები
+        nutrient_columns = [col for col in df.columns if col not in ['პროდუქტი', 'კატეგორია']]
+        selected_nutrients_to_display = st.multiselect(
             "აირჩიეთ ნუტრიენტები საჩვენებლად:",
-            all_nutrients,
-            default=st.session_state.nutrients_multiselect_tab3,
-            key="nutrients_multiselect_tab3"
+            options=nutrient_columns,
+            default=st.session_state.nutrients_multiselect_tab3, # Default value from session state
+            key="nutrients_multiselect_tab3" # Set key for session state
         )
         
-        # გასუფთავების ღილაკი
-        st.button("🗑️ არჩეული ნუტრიენტების გასუფთავება", on_click=clear_nutrients_multiselect_tab3)
+        # Category filter for the full data table
+        categories_for_table = ['ყველა'] + sorted(df['კატეგორია'].unique().tolist())
+        selected_category_for_table = st.selectbox("ფილტრი კატეგორიის მიხედვით:", categories_for_table, key="category_filter_tab3")
 
+        # Clear selected nutrients button
+        st.button("🗑️ არჩეული ნუტრიენტების გასუფთავება", on_click=clear_nutrients_multiselect_tab3, key="clear_multiselect_tab3")
 
-        if not selected_nutrients_tab3:
-            st.info("გთხოვთ აირჩიოთ მინიმუმ ერთი ნუტრიენტი მონაცემების სანახავად.")
+        display_columns = ['პროდუქტი', 'კატეგორია'] + selected_nutrients_to_display
+
+        filtered_df_tab3 = df.copy()
+        if selected_category_for_table != 'ყველა':
+            filtered_df_tab3 = filtered_df_tab3[filtered_df_tab3['კატეგორია'] == selected_category_for_table]
+
+        if not selected_nutrients_to_display:
+            st.warning("გთხოვთ აირჩიოთ მინიმუმ ერთი ნუტრიენტი მონაცემების საჩვენებლად.")
         else:
-            display_columns = ['პროდუქტი', 'კატეგორია'] + selected_nutrients_tab3
-            st.dataframe(df[display_columns].set_index('პროდუქტი'))
+            st.dataframe(filtered_df_tab3[display_columns], use_container_width=True)
 
-# აპლიკაციის გაშვება
 if __name__ == "__main__":
     main()
