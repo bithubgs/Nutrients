@@ -1,5 +1,8 @@
 import streamlit as st
 import pandas as pd
+import random # დავამატეთ random მოდული
+
+# (დანარჩენი კოდი უცვლელი რჩება, პროდუქტების მონაცემები, ფუნქციები და ა.შ.)
 
 # საკვები პროდუქტების მონაცემები
 products_data = {
@@ -32,7 +35,7 @@ products_data = {
         'მცენარეული რძე', 'სოიოს პროდუქტები', 'საკონდიტრო ნაწარმი', 'სუპერფუდი', 'მარცვლეული',
         'პარკოსნები', 'მცენარეული რძე', 'პარკოსნები', 'პარკოსნები', 'ხილი',
         'გოგრის თესლი', 'კეშიუ', 'ფიჭვის კაკალი', 'ბოსტნეული', 'პარკოსნები', 'ბოსტნეული', 'ბოსტნეული',
-        'კაკალი და თესლი', 'კაკალი და თესლი', 'ბოსტნეული', 'ბოსტნეული',
+        'ფისტა', 'ბრაზილიური კაკალი', 'ნიორი', 'ჯანჯაფილი',
         # დამატებული პროდუქტების კატეგორიები
         'ბოსტნეული', 'ხილი', 'ხილი', 'ბოსტნეული', 'ბოსტნეული',
         'თევზის პროდუქტები', 'სოკო', 'რძის პროდუქტები'
@@ -608,6 +611,46 @@ def search_by_nutrient(df, search_term, min_amount=0):
     
     return results
 
+# NEW FUNCTION: Generate a random daily ration
+def generate_random_ration(df, num_items=5):
+    """
+    გენერირებს შემთხვევით დღიურ რაციონს პროდუქტების სიიდან.
+    ცდილობს მრავალფეროვნების დაცვას კატეგორიების მიხედვით.
+    """
+    all_products = df['პროდუქტი'].unique().tolist()
+    
+    # Determine the number of unique categories to select from
+    all_categories = df['კატეგორია'].unique().tolist()
+    
+    # If num_items is greater than the number of categories, we might repeat categories
+    # Try to pick one item from each category first, then fill in randomly
+    selected_ration = []
+    
+    # 1. Try to pick at least one product from diverse categories
+    random.shuffle(all_categories) # Shuffle categories to get different starting points
+    for category in all_categories:
+        if len(selected_ration) >= num_items:
+            break
+        category_products = df[df['კატეგორია'] == category]['პროდუქტი'].tolist()
+        if category_products:
+            chosen_product = random.choice(category_products)
+            # Ensure product is not already in the ration
+            if not any(item['პროდუქტი'] == chosen_product for item in selected_ration):
+                # Choose a random quantity between 50g and 300g for variety
+                quantity = random.randint(50, 300)
+                selected_ration.append({'პროდუქტი': chosen_product, 'რაოდენობა': quantity})
+
+    # 2. If we still need more items, randomly pick from all available products
+    while len(selected_ration) < num_items:
+        chosen_product = random.choice(all_products)
+        # Ensure product is not already in the ration
+        if not any(item['პროდუქტი'] == chosen_product for item in selected_ration):
+            quantity = random.randint(50, 300)
+            selected_ration.append({'პროდუქტი': chosen_product, 'რაოდენობა': quantity})
+            
+    return selected_ration
+
+
 # --- სტრიმლიტის აპლიკაცია ---
 def main():
     st.set_page_config(page_title="საკვები პროდუქტების ვიტამინ-მინერალური ძიება", layout="wide")
@@ -1006,33 +1049,14 @@ def main():
         
         st.markdown("---")
 
+        # დავამატეთ სლაიდერი პროდუქტების რაოდენობის ასარჩევად
+        num_ration_items = st.slider("რამდენი პროდუქტი გქონდეთ რაციონში?", min_value=3, max_value=10, value=6, step=1)
+
         if st.button("🛠️ რაციონის გენერაცია", key="generate_ration_button"):
-            # Placeholder for ration generation logic
-            st.info(f"რაციონის გენერაცია {ration_gender}ისთვის...")
-            
-            # --- აქ განთავსდება რაციონის გენერაციის ლოგიკა ---
-            # ეს არის მხოლოდ მაგალითი, თქვენ უნდა შეიმუშაოთ ალგორითმი,
-            # რომელიც შეარჩევს პროდუქტებს და მათ რაოდენობას
-            # რეკომენდებული დღიური დოზების მისაღწევად.
-            
-            # მაგალითად, შეგიძლიათ:
-            # 1. მიიღოთ რეკომენდებული დოზები 'ration_gender'-ისთვის.
-            # 2. შეიმუშაოთ ალგორითმი, რომელიც შემთხვევით ან ოპტიმიზებულად შეარჩევს პროდუქტებს DataFrame-დან.
-            # 3. გამოთვალოთ თითოეული შერჩეული პროდუქტის რაოდენობა, რათა მიაღწიოთ სამიზნე ნუტრიენტებს.
-            # 4. შეინახოთ გენერირებული რაციონი `st.session_state.generated_ration`-ში.
-            
-            # ამ დროისთვის, უბრალოდ ვაჩვენებთ dummy მონაცემებს
-            # 실제 რაციონის გენერაციის ფუნქცია უნდა იყოს აქ.
-            
-            st.session_state.generated_ration = [
-                {'პროდუქტი': 'ქათმის მკერდი', 'რაოდენობა': 150},
-                {'პროდუქტი': 'ბროკოლი', 'რაოდენობა': 200},
-                {'პროდუქტი': 'ორაგული (ველური)', 'რაოდენობა': 100},
-                {'პროდუქტი': 'ისპანახი', 'რაოდენობა': 100},
-                {'პროდუქტი': 'ნუში', 'რაოდენობა': 30},
-                {'პროდუქტი': 'იოგურტი (ბერძნული)', 'რაოდენობა': 150}
-            ]
+            # რაციონის გენერაციის ლოგიკა
+            st.session_state.generated_ration = generate_random_ration(df, num_items=num_ration_items)
             st.success("🎉 რაციონი წარმატებით გენერირდა!")
+            # st.rerun() # საჭიროა, რომ მაშინვე განახლდეს მონაცემები, თუ generate_random_ration-მა შეცვალა session_state
 
         if st.session_state.generated_ration:
             st.subheader("📋 გენერირებული დღიური რაციონი:")
