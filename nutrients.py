@@ -440,7 +440,13 @@ def calculate_daily_nutrition(selected_products, df):
             multiplier = item['რაოდენობა'] / 100.0
             
             for nutrient in total_nutrition.keys():
-                total_nutrition[nutrient] += product_data.iloc[0][nutrient] * multiplier
+                try:
+                    total_nutrition[nutrient] += product_data.iloc[0][nutrient] * multiplier
+                except KeyError:
+                    # Handle cases where a nutrient might be missing for a product (though not expected with current data)
+                    st.warning(f"გაფრთხილება: ნუტრიენტი '{nutrient}' არ მოიძებნა პროდუქტში '{item['პროდუქტი']}'.")
+                except Exception as e:
+                    st.error(f"შეცდომა ნუტრიენტის გამოთვლისას {nutrient} for {item['პროდუქტი']}: {e}")
     
     return total_nutrition
 
@@ -484,7 +490,7 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
     
     nutrient_names = {
         'რკინა_მგ': '🔶 რკინა',
-        'B12_მკგ': '� B12',
+        'B12_მკგ': '🔷 B12',
         'ფოლატი_მკგ': '🟢 ფოლატი',
         'C_ვიტამინი_მგ': '🟡 C ვიტამინი',
         'D_ვიტამინი_IU': '🟠 D ვიტამინი',
@@ -513,7 +519,9 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
 
                 current_amount = total_nutrition[nutrient_key]
                 recommended = recommended_doses[nutrient_key]
-                percentage = (current_amount / recommended) * 100
+                
+                # Avoid division by zero if recommended is 0
+                percentage = (current_amount / recommended) * 100 if recommended != 0 else (100 if current_amount > 0 else 0)
                 
                 with cols[i]:
                     # ფერის განსაზღვრა პროცენტის მიხედვით
@@ -541,7 +549,8 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
     for nutrient, name in nutrient_names.items():
         current_amount = total_nutrition[nutrient]
         recommended = recommended_doses[nutrient]
-        percentage = min((current_amount / recommended), 2.0)  # მაქსიმუმ 200%
+        
+        percentage = min((current_amount / recommended), 2.0) if recommended != 0 else (1.0 if current_amount > 0 else 0.0) # მაქსიმუმ 200%
         
         unit = get_unit(nutrient)
         
@@ -566,6 +575,12 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
     for nutrient, name in nutrient_names.items():
         current_amount = total_nutrition[nutrient]
         recommended = recommended_doses[nutrient]
+        
+        if recommended == 0: # Handle cases where recommended dose is 0
+            if current_amount > 0:
+                recommendations.append(f"⚡ **{name}**: მაღალია ({current_amount:.1f} {get_unit(nutrient)}) - რეკომენდებული დოზა არ არის განსაზღვრული.")
+            continue # Skip further percentage checks
+            
         percentage = (current_amount / recommended) * 100
         
         if percentage < 50:
@@ -587,16 +602,24 @@ def search_by_nutrient(df, search_term, min_amount=0):
     nutrient_col = find_nutrient_column(search_term)    
     
     if not nutrient_col:
+        st.warning(f"ნუტრიენტი '{search_term}' ვერ მოიძებნა მონაცემებში.")
         return pd.DataFrame()
     
     # ვფილტრავთ პროდუქტებს, რომლებიც შეიცავენ ამ ნუტრიენტს მინიმალური რაოდენობის ზემოთ
-    if min_amount == 0.0:
-        results = df[df[nutrient_col] > 0].copy()
-    else:
-        results = df[df[nutrient_col] >= min_amount].copy()
-    
-    # ვალაგებთ მაღალი შემცველობის მიხედვით
-    results = results.sort_values(nutrient_col, ascending=False)
+    try:
+        if min_amount == 0.0:
+            results = df[df[nutrient_col] > 0].copy()
+        else:
+            results = df[df[nutrient_col] >= min_amount].copy()
+        
+        # ვალაგებთ მაღალი შემცველობის მიხედვით
+        results = results.sort_values(nutrient_col, ascending=False)
+    except KeyError:
+        st.error(f"შეცდომა: სვეტი '{nutrient_col}' არ არსებობს DataFrame-ში. შეამოწმეთ მონაცემები.")
+        return pd.DataFrame()
+    except Exception as e:
+        st.error(f"შეცდომა ძიებისას ნუტრიენტით '{search_term}': {e}")
+        return pd.DataFrame()
     
     return results
 
@@ -613,24 +636,28 @@ def generate_random_meal_plan(gender, df):
     meal_plan = []
     max_products_to_add = 10 # Limit the number of products in the plan
     
+    available_products = df['პროდუქტი'].tolist() # Get all product names
+
     for _ in range(max_products_to_add):
         deficient_nutrients = [
             n for n in all_nutrients 
-            if current_intake[n] < recommended_doses[n] * 0.9 # Check if below 90% of RDA
+            if recommended_doses[n] > 0 and current_intake[n] < recommended_doses[n] * 0.9 # Check if below 90% of RDA and recommended dose is not zero
         ]
         
         if not deficient_nutrients:
-            break # All major nutrients are covered
-        
+            break # All major nutrients are covered or no recommended dose for remaining
+
         # Prioritize a random deficient nutrient
         target_nutrient = random.choice(deficient_nutrients)
         
         # Find products rich in this target nutrient
-        # Filter out products that have 0 of this nutrient to avoid infinite loops on empty products
+        # Filter out products that have 0 of this nutrient to avoid selecting useless products
         candidate_products_df = df[df[target_nutrient] > 0].copy()
         
         if candidate_products_df.empty:
-            continue # No products for this nutrient, try next iteration
+            # If no product has this nutrient, remove it from deficient_nutrients for next iteration
+            all_nutrients.remove(target_nutrient) # This will affect subsequent iterations
+            continue 
             
         # Select a random product from the candidates
         selected_product_row = candidate_products_df.sample(n=1).iloc[0]
@@ -645,7 +672,7 @@ def generate_random_meal_plan(gender, df):
         # Update current nutrient intake from this added product
         for nutrient_key in all_nutrients:
             # Ensure the nutrient key exists in the product_data
-            if nutrient_key in selected_product_row:
+            if nutrient_key in selected_product_row.index: # Use .index to check for column existence
                 nutrient_amount_per_100g = selected_product_row[nutrient_key]
                 current_intake[nutrient_key] += (nutrient_amount_per_100g / 100.0) * quantity
                 
@@ -656,13 +683,13 @@ def main():
     st.set_page_config(page_title="საკვები პროდუქტების ვიტამინ-მინერალური ძიება", layout="wide")
     
     # session state-ის ინიციალიზაცია
+    # დარწმუნდით, რომ ყველა session state ცვლადი ინიციალიზებულია აპლიკაციის დაწყებისას
     if 'search_term' not in st.session_state:
         st.session_state.search_term = ''
     if 'min_amount' not in st.session_state:
         st.session_state.min_amount = 0.0
     if 'selected_products' not in st.session_state:
         st.session_state.selected_products = []
-    # Initialize session state for the multiselect in tab3
     if 'nutrients_multiselect_tab3' not in st.session_state:
         st.session_state.nutrients_multiselect_tab3 = []
     if 'random_meal_plan' not in st.session_state:
@@ -1013,7 +1040,10 @@ def main():
 
         if st.button("🎲 გეგმის გენერირება", key="generate_random_plan_button"):
             st.session_state.random_meal_plan = generate_random_meal_plan(random_plan_gender, df)
-            st.success("შემთხვევითი კვებითი გეგმა გენერირებულია!")
+            if not st.session_state.random_meal_plan:
+                st.warning("ვერ მოხერხდა კვებითი გეგმის გენერირება მოცემული კრიტერიუმებით. სცადეთ ხელახლა.")
+            else:
+                st.success("შემთხვევითი კვებითი გეგმა გენერირებულია!")
             
         if st.session_state.random_meal_plan:
             st.subheader(f"🛒 გენერირებული გეგმა ({st.session_state.random_meal_gender}):")
