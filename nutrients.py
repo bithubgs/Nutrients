@@ -584,7 +584,7 @@ def display_nutrition_analysis(total_nutrition, recommended_doses):
 def search_by_nutrient(df, search_term, min_amount=0):
     """ვიძებთ პროდუქტებს კონკრეტული ნუტრიენტის მიხედვით"""
     # ვიყენებთ გაუმჯობესებულ ფუნქციას
-    nutrient_col = find_nutrient_column(search_term) 
+    nutrient_col = find_nutrient_column(search_term)    
     
     if not nutrient_col:
         return pd.DataFrame()
@@ -628,15 +628,36 @@ def main():
         margin-bottom: 0.5rem !important;
     }
     .nutrition-card {
-        background-color: #f8f9fa;
+        /* Default for light mode */
+        background-color: #f8f9fa; 
+        color: #333; /* Darker text for light background */
         padding: 0.5rem;
         border-radius: 0.25rem;
         margin-bottom: 0.5rem;
         border-left: 3px solid #007bff;
     }
+    /* Dark mode adjustments */
+    @media (prefers-color-scheme: dark) {
+        .nutrition-card {
+            background-color: #333333; /* Darker background for dark mode */
+            color: #f8f9fa; /* Lighter text for dark background */
+            border-left: 3px solid #66b3ff; /* A lighter blue for contrast */
+        }
+        .nutrition-card h4 {
+            color: #f8f9fa !important; /* Ensure heading is light */
+        }
+        .nutrition-value {
+            color: #99ccff !important; /* Lighter blue for values */
+        }
+        /* Adjusting Streamlit's default text color for general elements if needed */
+        .stMarkdown, .stText, .stLabel {
+            color: #f8f9fa; /* Light text for general markdown/text */
+        }
+    }
+
     .nutrition-value {
         font-weight: bold;
-        color: #007bff;
+        color: #007bff; /* This will be overridden for dark mode by the @media query */
     }
     .dose-button {
         background-color: #e6f7ff;
@@ -702,16 +723,16 @@ def main():
             
             # ძიების ტექსტური ველი
             st.session_state.search_term = st.text_input("მოძებნეთ ნუტრიენტი (მაგ. რკინა, ვიტამინი C):", 
-                                                          value=st.session_state.search_term, 
-                                                          key="main_search_input_text_field") # უნიკალური key
+                                                         value=st.session_state.search_term, 
+                                                         key="main_search_input_text_field") # უნიკალური key
             
             # მინიმალური რაოდენობის ფილტრი
             if st.session_state.search_term:
                 st.session_state.min_amount = st.number_input(f"მინიმალური რაოდენობა ({st.session_state.search_term}):", 
-                                                              min_value=0.0, 
-                                                              value=st.session_state.min_amount, # იყენებს session_state-ის მნიშვნელობას
-                                                              step=0.1,
-                                                              key="min_amount_input_field") # უნიკალური key
+                                                               min_value=0.0, 
+                                                               value=st.session_state.min_amount, # იყენებს session_state-ის მნიშვნელობას
+                                                               step=0.1,
+                                                               key="min_amount_input_field") # უნიკალური key
         
         # მთავარი კონტენტი (ძიების ტაბი)
         filtered_df = df.copy()
@@ -778,7 +799,7 @@ def main():
                             # პროდუქტის ბარათი ყველა ვიტამინ-მინერალით
                             nutrition_info = f"""
                             <div class="nutrition-card">
-                                <h4 style="margin: 0 0 0.5rem 0; color: #333;">{row['პროდუქტი']}</h4>
+                                <h4 style="margin: 0 0 0.5rem 0;">{row['პროდუქტი']}</h4>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; font-size: 12px;">
                                     <div>🔶 რკინა: <span class="nutrition-value">{row['რკინა_მგ']} მგ</span></div>
                                     <div>🔷 B12: <span class="nutrition-value">{row['B12_მკგ']} მკგ</span></div>
@@ -799,139 +820,117 @@ def main():
                             st.markdown(nutrition_info, unsafe_allow_html=True)
     
     with tab2:
-        # დღიური ნორმის კალკულატორი
-        st.subheader("🧮 დღიური ნორმის კალკულატორი")
-        st.write("აირჩიეთ პროდუქტები და მიუთითეთ რაოდენობა (გრამებში), თქვენი დღიური ნორმა გამოითვლება:")
+        st.header("🧮 დღიური ნორმის კალკულატორი")
+        st.markdown("დაამატეთ პროდუქტები და მათი რაოდენობა (გრამებში), რათა გამოთვალოთ დღიური ნუტრიენტების ჯამური შემცველობა.")
         
-        # ახალი პროდუქტის დამატება
-        col1_calc, col2_calc, col3_calc = st.columns([3, 2, 1])
+        # სქესის არჩევა
+        gender = st.radio("აირჩიეთ სქესი:", ["მამაკაცი", "ქალი"])
         
-        with col1_calc:
-            product_to_add = st.selectbox("აირჩიეთ პროდუქტი:", 
-                                         options=[''] + sorted(df['პროდუქტი'].tolist()),
-                                         key="product_selector")
+        # პროდუქტის არჩევა
+        product_options = df['პროდუქტი'].unique().tolist()
+        selected_product_name = st.selectbox("აირჩიეთ პროდუქტი:", product_options, key="product_selector_tab2")
         
-        with col2_calc:
-            if product_to_add:
-                amount = st.number_input("რაოდენობა (გრამი):", 
-                                         min_value=0.0, value=100.0, step=10.0,
-                                         key="amount_input")
+        # რაოდენობის შეყვანა
+        amount_g = st.number_input("რაოდენობა (გრამებში):", min_value=1.0, value=100.0, step=10.0, key="amount_input_tab2")
         
-        with col3_calc:
-            if product_to_add and st.button("➕ დამატება"):
-                st.session_state.selected_products.append({
-                    'პროდუქტი': product_to_add,
-                    'რაოდენობა': amount
-                })
-                # st.rerun() # აღარ არის საჭირო, Streamlit ავტომატურად განაახლებს
+        # პროდუქტის დამატება სიაში
+        if st.button("➕ პროდუქტის დამატება", key="add_product_button_tab2"):
+            if selected_product_name and amount_g > 0:
+                # შემოწმება დუბლიკატებზე (შეცვლა თუ უკვე არსებობს)
+                found = False
+                for i, item in enumerate(st.session_state.selected_products):
+                    if item['პროდუქტი'] == selected_product_name:
+                        st.session_state.selected_products[i]['რაოდენობა'] = amount_g
+                        found = True
+                        break
+                if not found:
+                    st.session_state.selected_products.append({'პროდუქტი': selected_product_name, 'რაოდენობა': amount_g})
+                st.success(f"'{selected_product_name}' დაემატა/განახლდა {amount_g} გრამით.")
+            else:
+                st.warning("გთხოვთ აირჩიოთ პროდუქტი და შეიყვანოთ დადებითი რაოდენობა.")
         
-        # არჩეული პროდუქტების ჩვენება
+        st.markdown("---")
+        
+        st.subheader("🛒 თქვენი არჩეული პროდუქტები:")
         if st.session_state.selected_products:
-            st.subheader("📝 არჩეული პროდუქტები:")
+            # ცხრილის ჩვენება და რედაქტირება
             
-            # პროდუქტების სია
-            for i, item in enumerate(st.session_state.selected_products):
-                col1_item, col2_item, col3_item = st.columns([3, 2, 1])
-                
-                with col1_item:
-                    st.write(f"**{item['პროდუქტი']}**")
-                
-                with col2_item:
-                    # რაოდენობის რედაქტირება
-                    new_amount = st.number_input(f"რაოდენობა (გ):", 
-                                                 value=item['რაოდენობა'],
-                                                 min_value=0.0, step=10.0,
-                                                 key=f"edit_amount_{i}")
-                    if new_amount != item['რაოდენობა']:
-                        st.session_state.selected_products[i]['რაოდენობა'] = new_amount
-                        # st.rerun() # აღარ არის საჭირო, Streamlit ავტომატურად განაახლებს
-                
-                with col3_item:
-                    if st.button("🗑️", key=f"remove_{i}"):
-                        st.session_state.selected_products.pop(i)
-                        # st.rerun() # აღარ არის საჭირო, Streamlit ავტომატურად განაახლებს
+            # გადაყვანა DataFrame-ში დინამიური რედაქტირებისთვის
+            selected_df = pd.DataFrame(st.session_state.selected_products)
             
-            # ყველა პროდუქტის გასუფთავება
-            if st.button("🗑️ ყველას გასუფთავება", key="clear_all_selected_products"):
+            edited_df = st.data_editor(
+                selected_df,
+                num_rows="dynamic",
+                use_container_width=True,
+                column_config={
+                    "პროდუქტი": st.column_config.Column(
+                        "პროდუქტი",
+                        help="პროდუქტის სახელი",
+                        disabled=True,
+                    ),
+                    "რაოდენობა": st.column_config.NumberColumn(
+                        "რაოდენობა (გრამებში)",
+                        help="პროდუქტის რაოდენობა გრამებში",
+                        min_value=1.0,
+                        step=10.0,
+                        format="%f გ",
+                    ),
+                },
+                key="selected_products_editor"
+            )
+            
+            # განვაახლოთ session state რედაქტირებული DataFrame-დან
+            st.session_state.selected_products = edited_df.to_dict('records')
+            
+            if st.button("❌ სიის გასუფთავება", key="clear_selected_products"):
                 st.session_state.selected_products = []
-                # st.rerun() # აღარ არის საჭირო, Streamlit ავტომატურად განაახლებს
+                st.success("პროდუქტების სია გასუფთავებულია.")
+                st.rerun() # აუცილებელია ცვლილებების ასახვისთვის
             
-            # დღიური ნორმის გამოთვლა
             st.markdown("---")
-            st.subheader("📊 დღიური ნორმის ანალიზი:")
             
-            # გამოთვლა
+            # ნუტრიენტების გაანგარიშება
             total_nutrition = calculate_daily_nutrition(st.session_state.selected_products, df)
             
             if total_nutrition:
-                # სქესის არჩევა უკეთესი გამოთვლისთვის
-                gender = st.radio("სქესი:", ["მამაკაცი", "ქალი"], horizontal=True)
-                
-                # რეკომენდებული დოზების მიღება
+                st.subheader("📊 დღიური ნუტრიენტების ანალიზი:")
                 recommended_doses = get_recommended_doses(gender)
-                
-                # ვიზუალიზაცია
                 display_nutrition_analysis(total_nutrition, recommended_doses)
-
+            else:
+                st.info("დაამატეთ პროდუქტები დღიური ნორმის სანახავად.")
+        else:
+            st.info("პროდუქტები არ არის დამატებული.")
+    
     with tab3:
-        st.subheader("📊 ნუტრიენტების მონაცემები პროდუქტების მიხედვით")
-        st.write("აირჩიეთ მინერალები და ვიტამინები, რათა ნახოთ რომელი პროდუქტები შეიცავს მათ დიდი რაოდენობით.")
+        st.header("📈 ნუტრიენტების სრული მონაცემები")
+        st.markdown("იხილეთ ყველა პროდუქტის და ნუტრიენტის დეტალური მონაცემები.")
+        
+        # ფილტრები
+        nutrient_columns = [col for col in df.columns if col not in ['პროდუქტი', 'კატეგორია']]
+        selected_nutrients_to_display = st.multiselect(
+            "აირჩიეთ ნუტრიენტები საჩვენებლად:",
+            options=nutrient_columns,
+            default=st.session_state.nutrients_multiselect_tab3, # Default value from session state
+            key="nutrients_multiselect_tab3" # Set key for session state
+        )
+        
+        # Category filter for the full data table
+        categories_for_table = ['ყველა'] + sorted(df['კატეგორია'].unique().tolist())
+        selected_category_for_table = st.selectbox("ფილტრი კატეგორიის მიხედვით:", categories_for_table, key="category_filter_tab3")
 
-        # ნუტრიენტების მრავალჯერადი არჩევა
-        all_nutrients = [col for col in df.columns if col not in ['პროდუქტი', 'კატეგორია']]
-        # Use the value from session_state for multiselect
-        selected_nutrients_tab3 = st.multiselect("აირჩიეთ ნუტრიენტები:", all_nutrients, 
-                                                 default=st.session_state.nutrients_multiselect_tab3, 
-                                                 key="nutrients_multiselect_tab3")
+        # Clear selected nutrients button
+        st.button("🗑️ არჩეული ნუტრიენტების გასუფთავება", on_click=clear_nutrients_multiselect_tab3, key="clear_multiselect_tab3")
 
-        # გასუფთავების ღილაკი
-        # გამოიყენეთ on_click callback ფუნქცია
-        st.button("🗑️ არჩევის გასუფთავება", key="clear_selected_nutrients_tab3", on_click=clear_nutrients_multiselect_tab3)
+        display_columns = ['პროდუქტი', 'კატეგორია'] + selected_nutrients_to_display
 
-        if selected_nutrients_tab3:
-            st.markdown("---")
-            st.subheader("📝 შერჩეული ნუტრიენტების შემცველი პროდუქტები")
+        filtered_df_tab3 = df.copy()
+        if selected_category_for_table != 'ყველა':
+            filtered_df_tab3 = filtered_df_tab3[filtered_df_tab3['კატეგორია'] == selected_category_for_table]
 
-            # შექმენით დროებითი DataFrame მხოლოდ შერჩეული ნუტრიენტებით
-            display_cols = ['პროდუქტი', 'კატეგორია'] + selected_nutrients_tab3
-            display_df = df[display_cols].copy()
-
-            # კატეგორიების მიხედვით დაჯგუფება და ჩვენება
-            for category in sorted(display_df['კატეგორია'].unique()):
-                with st.expander(f"📂 {category}", expanded=True):
-                    category_data = display_df[display_df['კატეგორია'] == category]
-                    
-                    # დალაგება თითოეული ნუტრიენტის მიხედვით (შეგიძლიათ შეცვალოთ ლოგიკა)
-                    # მაგალითად, დაალაგოთ პირველი შერჩეული ნუტრიენტის მიხედვით
-                    if selected_nutrients_tab3:
-                        sort_nutrient = selected_nutrients_tab3[0]
-                        category_data = category_data.sort_values(sort_nutrient, ascending=False)
-                    
-                    # ცხრილის ჩვენება hide_index-ით
-                    st.dataframe(category_data, use_container_width=True, hide_index=True)
-
-
-    # სტატისტიკა
-    st.markdown("---")
-    col1_stats, col2_stats, col3_stats = st.columns(3)
-    
-    with col1_stats:
-        if 'filtered_df' in locals():
-            st.metric("სულ პროდუქტები", len(filtered_df))
+        if not selected_nutrients_to_display:
+            st.warning("გთხოვთ აირჩიოთ მინიმუმ ერთი ნუტრიენტი მონაცემების საჩვენებლად.")
         else:
-            st.metric("სულ პროდუქტები", len(df))
-    
-    with col2_stats:
-        if 'filtered_df' in locals():
-            st.metric("კატეგორიები", len(filtered_df['კატეგორია'].unique()))
-        else:
-            st.metric("კატეგორიები", len(df['კატეგორია'].unique()))
-    
-    with col3_stats:
-        if 'search_results' in locals() and not search_results.empty:
-            st.metric("ძიების შედეგები", len(search_results))
-        else:
-            st.metric("ძიების შედეგები", 0)
+            st.dataframe(filtered_df_tab3[display_columns], use_container_width=True)
 
 if __name__ == "__main__":
     main()
