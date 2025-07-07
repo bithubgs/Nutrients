@@ -801,13 +801,13 @@ def main():
         color: white;
         border-radius: 10px;
         border: none;
-        padding: 12px 25px;
-        font-size: 17px;
+        # padding: 12px 25px;
+        font-size: 12px;
         cursor: pointer;
         transition: all 0.3s ease;
         display: block;
-        margin: 25px auto;
-        width: 85%;
+        # margin: 25px auto;
+        # width: 85%;
         max-width: 350px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
@@ -954,7 +954,7 @@ def main():
 
         /* Button styling for DARK MODE */
         .stButton>button {
-            background-color: #4CAF50; /* Green button remains vibrant */
+            # background-color: #4CAF50; /* Green button remains vibrant */
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
         .stButton>button:hover {
