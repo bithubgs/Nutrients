@@ -729,7 +729,7 @@ def calculate_tdee(bmr, activity_level):
 # --- Streamlit აპლიკაცია ---
 def main():
     st.set_page_config(
-        page_title="🍏 თქვენი პირადი ნუტრიციოლოგი",
+        page_title="🍏 ყველაფერი ვიტამინებზე და მინერალებზე",
         layout="wide",
         initial_sidebar_state="auto",
         menu_items={
