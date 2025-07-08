@@ -849,9 +849,9 @@ def main():
     }
 
     /* Sidebar styling for LIGHT MODE */
-    section[data-testid="stSidebar"] {
-        width: 220px !important; # Set the width to your desired value
-    }
+    # section[data-testid="stSidebar"] {
+    #     width: 220px !important; # Set the width to your desired value
+    # }
     .css-1d391kg { /* Streamlit sidebar background */
         background-color: #e0f8f8;
         border-right: 1px solid #b2e0e0;
