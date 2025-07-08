@@ -808,8 +808,8 @@ def main():
         display: block;
         # margin: 0px auto;
         # width: 85%;
-        width: 180px;
-        max-width: 2500px;
+        width: 200px;
+        max-width: 250px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     .stButton>button:hover {
