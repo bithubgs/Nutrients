@@ -806,8 +806,7 @@ def main():
         cursor: pointer;
         transition: all 0.3s ease;
         display: block;
-        # margin: 25px auto;
-        margin: auto;
+        margin: 0px auto;
         # width: 85%;
         width: 200px;
         max-width: 2500px;
