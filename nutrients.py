@@ -808,8 +808,8 @@ def main():
         display: block;
         # margin: 0px auto;
         # width: 85%;
-        width: 200px;
-        max-width: 250px;
+        width: 180px;
+        max-width: 200px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     .stButton>button:hover {
@@ -849,6 +849,9 @@ def main():
     }
 
     /* Sidebar styling for LIGHT MODE */
+    section[data-testid="stSidebar"] {
+        width: 220px !important; # Set the width to your desired value
+    }
     .css-1d391kg { /* Streamlit sidebar background */
         background-color: #e0f8f8;
         border-right: 1px solid #b2e0e0;
@@ -1364,7 +1367,7 @@ def main():
         # "დღიური დოზები (ზრდასრული)" განყოფილება
         st.markdown("**📊 დღიური დოზები (ზრდასრული):**")
         
-        col0, col1, col2, col3, col4, col5 = st.columns([2, 3, 3, 3, 3, 1])
+        col0, col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1, 1])
 
         with col0:
             st.button("🔥 **კალორიები:** 2000-3000 კკალ", key="dose_calories_search_page", use_container_width=True, on_click=set_search_and_min_amount, args=('კალორიები', 0.0))
