@@ -807,9 +807,10 @@ def main():
         transition: all 0.3s ease;
         display: block;
         # margin: 25px auto;
+        margin: auto;
         # width: 85%;
         width: 200px;
-        max-width: 350px;
+        max-width: 2500px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     .stButton>button:hover {
