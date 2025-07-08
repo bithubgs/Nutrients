@@ -806,9 +806,9 @@ def main():
         cursor: pointer;
         transition: all 0.3s ease;
         display: block;
-        margin: 0px auto;
+        # margin: 0px auto;
         # width: 85%;
-        width: 200px;
+        width: 180px;
         max-width: 2500px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
