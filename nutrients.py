@@ -1060,6 +1060,7 @@ def main():
     # Sidebar Navigation
     with st.sidebar:
         st.header("ნავიგაცია")
+        st.markdown("         ")
         if st.button("👨‍⚕️ **პირადი ნუტრიციოლოგი**", key="btn_nutr"):
             st.session_state.current_page = "👨‍⚕️ პირადი ნუტრიციოლოგი"
         if st.button("🔍 **პროდუქტების ძიება**", key="btn_search"):
