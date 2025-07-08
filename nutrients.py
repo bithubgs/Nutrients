@@ -808,7 +808,7 @@ def main():
         display: block;
         # margin: 25px auto;
         # width: 85%;
-        width: 250px;
+        width: 200px;
         max-width: 350px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
